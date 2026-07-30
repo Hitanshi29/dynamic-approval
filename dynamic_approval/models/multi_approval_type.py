@@ -270,26 +270,32 @@ class MultiApprovalType(models.Model):
             fld.set('invisible', '1')
 
         # req_btn = etree.SubElement(header_xpath, 'button')
-        # req_btn.set('name', req_name)
+        # req_btn.set('name', 'action_request_approval_dynamic')   # was: req_name / type="action"
         # req_btn.set('type', 'object')
         # req_btn.set('string', 'Request Approval')
         # req_btn.set('class', 'oe_highlight')
         # req_btn.set('invisible', '%s or not (%s)' % (DYNAMIC_FIELD_NAME, eligible_expr))
         # req_btn.set('context', "{'approval_type_id': %d}" % self.id)
 
+        # view_btn = etree.SubElement(header_xpath, 'button')
+        # view_btn.set('name', view_name)
+        # view_btn.set('type', 'action')
+        # view_btn.set('string', 'View Approval')
+        # view_btn.set('invisible', 'not %s' % DYNAMIC_FIELD_NAME)
+
         req_btn = etree.SubElement(header_xpath, 'button')
-        req_btn.set('name', 'action_request_approval_dynamic')   # was: req_name / type="action"
+        req_btn.set('name', 'action_request_approval_dynamic')
         req_btn.set('type', 'object')
         req_btn.set('string', 'Request Approval')
         req_btn.set('class', 'oe_highlight')
-        req_btn.set('invisible', '%s or not (%s)' % (DYNAMIC_FIELD_NAME, eligible_expr))
+        req_btn.set('invisible', "%s in ('submitted', 'resolved') or not (%s)" % (DYNAMIC_FIELD_NAME, eligible_expr))
         req_btn.set('context', "{'approval_type_id': %d}" % self.id)
 
         view_btn = etree.SubElement(header_xpath, 'button')
         view_btn.set('name', view_name)
         view_btn.set('type', 'action')
         view_btn.set('string', 'View Approval')
-        view_btn.set('invisible', 'not %s' % DYNAMIC_FIELD_NAME)
+        view_btn.set('invisible', "%s != 'submitted'" % DYNAMIC_FIELD_NAME)
 
         # --- Hide the model's own header buttons while the record matches
         #     the configured Domain (e.g. state == 'draft' / "Quotation") ---
@@ -366,7 +372,8 @@ class MultiApprovalType(models.Model):
         banner = etree.SubElement(sheet_xpath, 'div')
         banner.set('class', 'alert alert-info')
         banner.set('role', 'alert')
-        banner.set('invisible', 'not %s' % DYNAMIC_FIELD_NAME)
+        # banner.set('invisible', 'not %s' % DYNAMIC_FIELD_NAME)
+        banner.set('invisible', "%s != 'submitted'" % DYNAMIC_FIELD_NAME)
         banner.text = 'Waiting Approval'
 
         arch = etree.tostring(data, encoding='unicode')

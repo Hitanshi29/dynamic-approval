@@ -242,6 +242,15 @@ class ApprovalRequest(models.Model):
         code = getattr(self.type_id, field_name, False)
         if not code or not (self.res_model and self.res_id):
             return
+
+        # Require at least base access to the module (blocks "No" access),
+        # but don't check record rules here — an approver shouldn't be
+        # blocked just because the document isn't "their own".
+        if not self.env['ir.model.access'].check(self.res_model, 'write', raise_exception=False):
+            raise UserError(_(
+                "You don't have access to this module, so you can't approve or cancel this request."
+            ))
+
         record = self.env[self.res_model].sudo().browse(self.res_id)
         if not record.exists():
             return
@@ -340,12 +349,12 @@ class ApprovalRequest(models.Model):
             rec.message_post(body=_('Approval created'))
             rec._set_dynamic_flag(True)
 
+  
     def action_approve(self):
         for rec in self:
             active_line = rec.line_ids.filtered(lambda l: l.state == 'to_approve')[:1]
 
             if active_line:
-                # --- multi-step flow ---
                 if active_line.user_id.id != self.env.uid:
                     raise UserError(_('Only the assigned approver can approve this step.'))
                 active_line.write({'state': 'approved', 'approved_date': fields.Datetime.now()})
@@ -355,22 +364,19 @@ class ApprovalRequest(models.Model):
                 if next_line:
                     next_line.state = 'to_approve'
                     rec.approver_id = next_line.user_id.id
-                    # still 'submitted' overall — waiting on the next step
                     continue
 
-                # last step just cleared -> whole request is Approved
                 rec.state = 'approved'
                 rec._run_type_action('approved_action')
-                rec._set_dynamic_flag(False)
+                rec._set_dynamic_flag(False)          # <-- back in
                 rec._send_status_mail('mail_template_approval_approved')
                 continue
 
-            # --- legacy single-approver flow (0 or 1 tier applied) ---
             if rec.approver_id.id != self.env.uid:
                 raise UserError(_('Only the assigned approver can approve this request.'))
             rec.state = 'approved'
             rec._run_type_action('approved_action')
-            rec._set_dynamic_flag(False)
+            rec._set_dynamic_flag(False)              # <-- back in
             rec._send_status_mail('mail_template_approval_approved')
 
     def action_cancel(self):

@@ -148,7 +148,6 @@
                             <div class="o_kanban_record_bottom mt-2 d-flex align-items-center justify-content-between">
                             
                                 <div class="oe_kanban_bottom_left">
-                                    <!-- left side content, e.g. New Request button, if any -->
                                     <div class="oe_kanban_bottom_left">
                                         <button type="object"
                                                 name="action_create_request"
