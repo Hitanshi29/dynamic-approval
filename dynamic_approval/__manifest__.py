@@ -16,6 +16,7 @@
         'security/dynamic_approval_access.xml',
         'security/ir.model.access.csv',
         'data/ir.sequence.xml',
+        'data/mail_template_data.xml',
         'views/multi_approval_type_view.xml',
         'views/approval_request_view.xml',
         'wizard/approval_change_user_view.xml',

@@ -387,6 +387,10 @@ class MultiApprovalType(models.Model):
     # add this field near the other Text fields (approved_action / refused_action)
     description_template = fields.Html(
         string='Description Template',
+        default=lambda self: _(
+            'Hi,<br/>Please review my request.<br/>'
+            'Click {record.display_name} to view more!<br/>Thanks,'
+        ),
         help=(
             "Default message shown in the Description box when someone clicks "
             "'Request Approval'. You can use placeholders like {record.display_name}, "
@@ -394,6 +398,8 @@ class MultiApprovalType(models.Model):
         ),
     )
 
+
+    
     def _render_description(self, record=False):
         """Fill in the Description Template with the real record's values.
         {record.display_name} is swapped for a clickable link to the record

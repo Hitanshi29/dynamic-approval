@@ -236,15 +236,19 @@ class ApprovalRequest(models.Model):
         if 'x_dynamic_approval_pending' in target_model._fields:
             target_model.sudo().browse(self.res_id).write({'x_dynamic_approval_pending': value})
 
+   
     def _run_type_action(self, field_name):
         self.ensure_one()
         code = getattr(self.type_id, field_name, False)
         if not code or not (self.res_model and self.res_id):
             return
-        record = self.env[self.res_model].browse(self.res_id)
+        record = self.env[self.res_model].sudo().browse(self.res_id)
         if not record.exists():
             return
-        safe_eval(code, {'record': record, 'env': self.env}, mode='exec')
+        try:
+            safe_eval(code, {'record': record, 'env': record.env}, mode='exec')
+        except Exception as e:
+            raise UserError(_('The configured action for "%s" failed: %s') % (self.type_id.name, e))
 
     # ---------------------------------------------------------------
     # Workflow actions (CHANGED: action_submit / action_approve / action_refuse)

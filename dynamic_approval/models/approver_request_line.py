@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import fields, models, _
 
 class ApprovalRequestLine(models.Model):
     
@@ -16,7 +16,7 @@ class ApprovalRequestLine(models.Model):
         ('waiting', 'Waiting'),
         ('to_approve', 'To Approve'),
         ('approved', 'Approved'),
-        ('refused', 'Refused'),
+        ('cancel', 'Cancel'),
     ], string='Status', default='waiting')
     approved_date = fields.Datetime(string='Approved On')
 

@@ -1,0 +1,12 @@
+<odoo noupdate="1">
+    <record id="mail_template_approval_step_assigned" model="mail.template">
+        <field name="name">Approval: Step Assigned</field>
+        <field name="model_id" ref="model_approval_request"/>
+        <field name="subject">Approval needed: {{ object.name }}</field>
+        <field name="email_to">{{ object.approver_id.email }}</field>
+        <field name="body_html" type="html">
+            <p>You have an approval request waiting: <strong t-out="object.title or object.name"/>.</p>
+        </field>
+    </record>
+    <!-- repeat for mail_template_approval_approved, mail_template_approval_refused -->
+</odoo>
