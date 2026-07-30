@@ -1,8 +1,8 @@
 from odoo import models, _
-import logging
 from odoo.exceptions import UserError
 from odoo.tools.safe_eval import safe_eval
 
+import logging
 _logger = logging.getLogger(__name__)
 
 
@@ -21,13 +21,6 @@ class Base(models.AbstractModel):
         thresholds = approval_type.approver_ids.mapped('minimum_amount')
         threshold = min(thresholds) if thresholds else 0.0
         record_amount = getattr(self, 'amount_total', 0.0) or 0.0
-
-        _logger.info(
-            ">>>>>>>>>>>>>>>>>>>>>>>>>>>DYNAMIC APPROVAL DEBUG | approval_type_id=%s | approver_ids=%s | "
-            "thresholds=%s | threshold=%s | record_amount=%s",
-            approval_type_id, approval_type.approver_ids.ids,
-            thresholds, threshold, record_amount,
-        )
 
         if record_amount < threshold:
             if approval_type.approved_action:   # corrected field name
