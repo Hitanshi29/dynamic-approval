@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_approval_change_approver_wizard_form" model="ir.ui.view">
+        <field name="name">approval.change.user.wizard.form</field>
+        <field name="model">approval.change.user.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Change Approver">
+                <field name="request_id" invisible="1"/>
+                <group>
+                    <field name="new_approver_id"/>
+                    <field name="reason"/>
+                </group>
+                <footer>
+                    <button name="action_update" string="Update" type="object" class="oe_highlight"/>
+                    <button string="Close" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

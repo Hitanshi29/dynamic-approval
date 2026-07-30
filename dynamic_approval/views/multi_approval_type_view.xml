@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<odoo>
+
+    <record id="view_approval_type_form" model="ir.ui.view">
+        <field name="name">multi..approval.type.form</field>
+        <field name="model">multi.approval.type</field>
+        <field name="arch" type="xml">
+            <form string="Approval Type">
+                <header>
+                    <button name="action_configure"
+                        string="Configure"
+                        type="object"
+                        class="oe_highlight"
+                        invisible="not is_model or is_configured" groups="dynamic_approval.group_access_approval_admin"/>
+                </header>
+                <div class="alert alert-info" role="alert" invisible="not is_configured">
+                    This type has been configured!
+                </div>
+                <sheet>
+                    <field name="image" widget="image" class="oe_avatar" options="{'preview_image': 'image', 'size': [90, 90]}"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="Approval Type"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="description"/>
+                            <field name="is_model" readonly="is_configured"/>
+                            
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Options">
+
+                            <group string="Fields Setting" col="2" invisible="is_model">
+                                <group>
+                                    <field name="document_opt" widget="radio" options="{'horizontal': true}" invisible="is_model"/>
+                                    <field name="quantity_opt" widget="radio" options="{'horizontal': true}" invisible="is_model"/>
+
+                                    <field name="contact_opt" widget="radio" options="{'horizontal': true}" invisible="is_model"/>
+                                    <field name="amount_opt" widget="radio" options="{'horizontal': true}" invisible="is_model"/>
+
+                                    <field name="date_opt" widget="radio" options="{'horizontal': true}" invisible="is_model"/>
+                                    <field name="payment_opt" widget="radio" options="{'horizontal': true}" invisible="is_model"/>
+                                </group>
+                                <group>
+                                    <field name="period_opt" widget="radio" options="{'horizontal': true}" invisible="is_model"/>
+                                    <field name="reference_opt" widget="radio" options="{'horizontal': true}" invisible="is_model"/>
+
+                                    <field name="item_opt" widget="radio" options="{'horizontal': true}" invisible="is_model"/>
+                                    <field name="location_opt" widget="radio" options="{'horizontal': true}" invisible="is_model"/>
+
+                                    <field name="multi_items_opt" widget="radio" options="{'horizontal': true}" invisible="is_model"/>
+                                </group>
+                            </group>
+
+                            <group string="Model Setting" invisible="not is_model"> 
+                                <field name="model_id" invisible="not is_model" readonly="is_configured"/>
+                                <field name="model_name" invisible="1"/>
+
+                                <field name="domain"
+                                    invisible="not is_model"
+                                    readonly="is_configured"
+                                    widget="domain"
+                                    options="{'model': 'model_name'}"
+                                    placeholder="Select a model to add a filter."/>
+
+                                <field name="hide_buttons_from_model_view" invisible="not is_model"/>
+                            
+
+                                <field name="approved_action"
+                                    widget="ace"
+                                    options="{'mode': 'python'}"
+                                    placeholder="# Code editor"
+                                    invisible="not is_model"/>
+
+                                <field name="refused_action"
+                                    widget="ace"
+                                    options="{'mode': 'python'}"
+                                    invisible="not is_model"/>
+                            </group>
+                            <group string="Approvers">
+                                <field name="approver_ids" >
+                                    <list editable="bottom">
+                                        <field name="title" readonly="parent.is_configured"/>
+                                        <field name="user_id" widget="many2one_avatar_user" readonly="parent.is_configured"/>
+                                        <!-- <field name="group_ids" widget="many2many_tags" readonly="parent.is_configured"/> -->
+                                        <field name="minimum_amount" readonly="parent.is_configured"/>
+                                        <field name="approval_kind" readonly="parent.is_configured"/>
+                                        <button name="action_view_approver" type="object"
+                                                string="View" 
+                                                optional="hide"/>
+                                    </list>
+                                </field>
+                            </group>
+                        </page>
+                        <page string="Description Template" name="description_template">
+                            <field name="description_template"
+                                placeholder="Hi,&#10;Please review my request.&#10;Click {record.display_name} to view more!&#10;Thanks,"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_approval_type_list" model="ir.ui.view">
+        <field name="name">multi.approval.type.list</field>
+        <field name="model">multi.approval.type</field>
+        <field name="arch" type="xml">
+            <list string="Approval Type">
+                <field name="name"/>
+                <field name="description"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="kanban_view_approval_type" model="ir.ui.view">
+        <field name="name">multi.approval.type.kanban</field>
+        <field name="model">multi.approval.type</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="name"/>
+                <field name="description"/>
+                <field name="image"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings d-flex">
+                                    <div class="oe_kanban_avatar_container me-3">
+                                        <field name="image" widget="image" class="oe_avatar" options="{'preview_image': 'image', 'size': [60, 60]}"/>
+                            
+                                    </div>
+                                    <div class="o_kanban_record_body flex-grow-1">
+                                        <strong class="o_kanban_record_title">
+                                            <field name="name"/>
+                                        </strong>
+                                        <div class="text-muted">
+                                            <field name="description"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_bottom mt-2 d-flex align-items-center justify-content-between">
+                            
+                                <div class="oe_kanban_bottom_left">
+                                    <!-- left side content, e.g. New Request button, if any -->
+                                    <div class="oe_kanban_bottom_left">
+                                        <button type="object"
+                                                name="action_create_request"
+                                                string="Create Request"
+                                                class="btn btn-sm btn-primary"
+                                                invisible="is_model"/>
+                                    </div>
+                                </div>
+                                <div class="oe_kanban_bottom_right">
+                                    <button type="object"
+                                            name="action_view_requests_to_review"
+                                            class="btn btn-sm badge rounded-pill text-bg-light border-0">
+                                        To Review: <field name="to_review_count"/>
+                                    </button>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_approval_type" model="ir.actions.act_window">
+        <field name="name">Approval Type</field>
+        <field name="res_model">multi.approval.type</field>
+        <field name="view_mode">kanban,list,form</field>
+    </record>
+
+</odoo>

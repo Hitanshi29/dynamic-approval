@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of Bizople Solutions Pvt. Ltd. -->
+<!-- Licensed under the Bizople Proprietary License v1.0. -->
+<!-- Copyright (C) 2026 Bizople Solutions Pvt. Ltd. -->
+
+<odoo>
+
+    <menuitem id="dynamic_approval_access" name="Approvals" groups="dynamic_approval.group_access_approval_user,dynamic_approval.group_access_approval_admin" sequence="5"/>
+
+    <menuitem id="dashboard" action="action_approval_type" name="Dashboard" parent="dynamic_approval_access" groups="dynamic_approval.group_access_approval_admin,dynamic_approval.group_access_approval_user"  sequence="1"/>
+    <menuitem id="approvals" name="Approvals" parent="dynamic_approval_access" groups="dynamic_approval.group_access_approval_admin,dynamic_approval.group_access_approval_user" sequence="2"/>
+    <menuitem id="review_approvals" action="action_approval_request_to_approve" name="My Request" parent="approvals" groups="dynamic_approval.group_access_approval_admin,dynamic_approval.group_access_approval_user"  sequence="1"/>
+    <menuitem id="request_approvals" action="action_approval_request_my" name="To Review" parent="approvals" groups="dynamic_approval.group_access_approval_admin,dynamic_approval.group_access_approval_user"  sequence="2"/>
+
+</odoo>
