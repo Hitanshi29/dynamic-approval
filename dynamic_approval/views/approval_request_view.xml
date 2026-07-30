@@ -215,19 +215,38 @@
                 <templates>
                     <t t-name="card">
                         <div class="oe_kanban_card oe_kanban_global_click">
-                            <div class="oe_kanban_details">
-                                <strong class="o_kanban_record_title">
-                                    <field name="name"/>
-                                </strong>
-                                <!-- <div class="o_kanban_record_bottom">
-                                    <div class="oe_kanban_bottom_left">
-                                        <field name="priority" widget="priority"/>
-                                    </div>
-                                </div> -->
-                                <div class="text-muted">
-                                    <field name="title"/>
-                                </div>
+
+                            <!-- Title -->
+                            <strong class="o_kanban_record_title">
+                                <field name="name"/>
+                            </strong>
+
+                            <!-- Description -->
+                            <div class="text-muted mt-1">
+                                <field name="title"/>
                             </div>
+
+                            <!-- Footer -->
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+
+                                <!-- Left Side -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>
+                                        <field name="request_date"/>
+                                    </span>
+
+                                    <field name="activity_ids" widget="kanban_activity"/>
+                                </div>
+
+                                <!-- Right Side -->
+                                <field name="state"
+                                    widget="badge"
+                                    decoration-success="state == 'approved'"
+                                    decoration-info="state == 'submitted'"
+                                    decoration-warning="state == 'refused'"
+                                    decoration-danger="state == 'cancel'"/>
+                            </div>
+
                         </div>
                     </t>
                 </templates>
