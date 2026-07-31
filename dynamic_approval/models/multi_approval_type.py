@@ -1,9 +1,9 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
-from lxml import etree   # add this import at the top of the file, with the other imports
+from lxml import etree   
+from markupsafe import Markup
 
-# The one field that gets created (once) on whichever model you configure.
-# It's what the generated buttons/banner check to decide what to show.
+
 DYNAMIC_FIELD_NAME = 'x_dynamic_approval_pending'
 
 
@@ -103,6 +103,7 @@ class MultiApprovalType(models.Model):
                 'default_title': self.name,
                 'default_approver_id': default_approver,
                 'default_description': default_description,
+                'default_record_amount': 0.0,
             },
         }
 
@@ -411,22 +412,16 @@ class MultiApprovalType(models.Model):
         instead of plain text. Falls back to a generic message if no template
         is set, and never raises — a bad placeholder just returns the raw
         template text.
-
-        record=False is valid — Approval Types with no Model configured
-        (Create Request button, no target document) have nothing to link
-        to, so {record.xxx} placeholders just resolve to empty text
-        instead of crashing.
         """
         self.ensure_one()
         template = self.description_template
 
-        # Build a clickable link (e.g. <a href="/odoo/sale.order/24">S00024</a>)
-        # only when there IS a target record.
-        record_link = record._get_html_link() if record else ''
+        if record:
+            url = '/web#model=%s&view_type=form&id=%s' % (record._name, record.id)
+            record_link = Markup('<a href="%s" target="_blank">%s</a>') % (url, record.display_name)
+        else:
+            record_link = ''
 
-        # Small wrapper so {record.display_name} in the template resolves to
-        # the link instead of the plain name, while other {record.xxx} usages
-        # (if any) still fall through to the real record when one exists.
         class _RecordProxy:
             def __init__(self, rec, link):
                 self._rec = rec
@@ -441,16 +436,21 @@ class MultiApprovalType(models.Model):
 
         if not template:
             if record:
-                return _(
+                result = _(
                     'Hi,<br/>Please review my request.<br/>'
                     'Click on %s to view more!<br/>Thanks,'
                 ) % (record_link,)
-            return _('Hi,<br/>Please review my request.<br/>Thanks,')
+            else:
+                result = _('Hi,<br/>Please review my request.<br/>Thanks,')
+            return Markup(result)
 
         try:
-            return template.format(record=proxy, user=self.env.user, type=self)
+            result = template.format(record=proxy, user=self.env.user, type=self)
         except Exception:
-            return template
+            result = template
+
+        return result if isinstance(result, Markup) else Markup(result)
+        
 
     FIELD_OPTIONS = [
         ('required', 'Required'),

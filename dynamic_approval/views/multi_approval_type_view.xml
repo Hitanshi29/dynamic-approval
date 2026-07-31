@@ -13,6 +13,13 @@
                         type="object"
                         class="oe_highlight"
                         invisible="not is_model or is_configured" groups="dynamic_approval.group_access_approval_admin"/>
+
+                    <button name="action_unconfigure"
+                        string="Edit"
+                        type="object"
+                        class="btn-secondary"
+                        confirm="Editing will remove the generated buttons/view on the target model until you Configure again. Continue?"
+                        invisible="not is_model or not is_configured" groups="dynamic_approval.group_access_approval_admin"/>
                 </header>
                 <div class="alert alert-info" role="alert" invisible="not is_configured">
                     This type has been configured!
@@ -166,6 +173,10 @@
                                 
                             </div>
                         </div>
+                    </t>
+                    <t t-name="menu">
+                        <a role="menuitem" type="edit" class="dropdown-item">Edit</a>
+                        <a role="menuitem" type="delete" class="dropdown-item">Delete</a>
                     </t>
                 </templates>
             </kanban>

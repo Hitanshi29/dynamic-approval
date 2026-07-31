@@ -294,15 +294,28 @@ class ApprovalRequest(models.Model):
             raise UserError(_('Please fill in the required field(s): %s') % ', '.join(missing))
 
 
+    # def _get_applicable_approver_tiers(self):
+    #     self.ensure_one()
+    #     type_lines = self.type_id.approver_ids.filtered(lambda l: l.user_id)
+    #     if not type_lines:
+    #         return type_lines
+    #     amount = self.record_amount or self.amount or 0.0
+    #     return type_lines.filtered(
+    #         lambda l: amount >= (l.minimum_amount or 0.0)
+    #     ).sorted(key=lambda l: l.minimum_amount or 0.0)
     def _get_applicable_approver_tiers(self):
         self.ensure_one()
         type_lines = self.type_id.approver_ids.filtered(lambda l: l.user_id)
         if not type_lines:
             return type_lines
         amount = self.record_amount or self.amount or 0.0
-        return type_lines.filtered(
+        matching = type_lines.filtered(
             lambda l: amount >= (l.minimum_amount or 0.0)
         ).sorted(key=lambda l: l.minimum_amount or 0.0)
+        if matching:
+            return matching
+    
+        return type_lines.sorted(key=lambda l: l.minimum_amount or 0.0)[:1]
 
     def _build_approval_lines(self):
         self.ensure_one()
