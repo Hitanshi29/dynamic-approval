@@ -10,9 +10,10 @@ DYNAMIC_FIELD_NAME = 'x_dynamic_approval_pending'
 class MultiApprovalType(models.Model):
     _name = 'multi.approval.type'
     _description = 'Approval Type'
+    _inherit = ["mail.thread", "mail.activity.mixin"]
 
-    name = fields.Char(string="Name", required=True)
-    description = fields.Char(string="Description")
+    name = fields.Char(string="Name", required=True, tracking=True)
+    description = fields.Char(string="Description", tracking=True)
     image = fields.Image(string="Photo")
     is_model = fields.Boolean(string="Apply For Model")
     is_configured = fields.Boolean(string="Is Configured", default=False)
@@ -25,7 +26,7 @@ class MultiApprovalType(models.Model):
             # ('model', 'not like', 'base.%'),
         ],
         help='Model this approval type applies to.',
-        ondelete='cascade',
+        ondelete='cascade',tracking=True
     )
     model_name = fields.Char(
         string='Model Name', related='model_id.model', store=True, readonly=True,
@@ -37,7 +38,7 @@ class MultiApprovalType(models.Model):
 
     domain = fields.Char(
         string='Domain', default='[]',
-        help='Filter used to match records this rule applies to.'
+        help='Filter used to match records this rule applies to.',tracking=True
     )
 
     hide_buttons_from_model_view = fields.Boolean(
@@ -47,14 +48,15 @@ class MultiApprovalType(models.Model):
 
     approved_action = fields.Text(
         string='Approved Action',
-        help='Python executed on the record when approved. Use "record" for the document.'
+        help='Python executed on the record when approved. Use "record" for the document.',
+        tracking=True
     )
     refused_action = fields.Text(
-        string='Refused Action',
-        help='Python executed on the record when refused. Use "record" for the document.'
+        string='Cancel Action',
+        help='Python executed on the record when refused. Use "record" for the document.',
+        tracking=True
     )
 
-    # bookkeeping — lets us find and delete everything we generated
     generated_view_id = fields.Many2one('ir.ui.view', string='Generated View', readonly=True, copy=False)
     generated_field_id = fields.Many2one('ir.model.fields', string='Generated Field', readonly=True, copy=False)
     action_request_id = fields.Many2one('ir.actions.server', string='Request Action', readonly=True, copy=False)
@@ -87,8 +89,6 @@ class MultiApprovalType(models.Model):
         )[:1] or self.approver_ids.filtered(lambda l: l.user_id)[:1]
         default_approver = approver_line.user_id.id if approver_line else False
 
-        # NEW — no target record exists for a no-Model type, so pass
-        # record=False; _render_description() now handles that.
         default_description = self._render_description(False)
 
         return {
@@ -119,11 +119,7 @@ class MultiApprovalType(models.Model):
             'context': {'default_type_id': self.id},
         }
 
-    # ------------------------------------------------------------------
-    # CONFIGURE — this is the method your existing "Configure" button
-    # already calls. It now builds the field, the two generic actions,
-    # and the inherited view, for whatever model was picked.
-    # ------------------------------------------------------------------
+    
     def action_configure(self):
         self.ensure_one()
         if not self.model_id:
@@ -151,9 +147,7 @@ class MultiApprovalType(models.Model):
         self.generated_view_id.unlink()
         self.action_request_id.unlink()
         self.action_view_id.unlink()
-        # the field itself is left in place — another Approval Type on the
-        # same model may still be using it, and dropping a column that
-        # holds data is not something to do silently.
+       
 
     def _ensure_marker_field(self):
         """Create the boolean field on the target model, once, via the
@@ -172,7 +166,6 @@ class MultiApprovalType(models.Model):
             'field_description': 'Approval Pending',
             'model_id': self.model_id.id,
             'ttype': 'char', 
-            # 'ttype': 'boolean',
             'copied': False,
         })
         self.generated_field_id = field.id
@@ -271,20 +264,6 @@ class MultiApprovalType(models.Model):
             fld.set('name', f)
             fld.set('invisible', '1')
 
-        # req_btn = etree.SubElement(header_xpath, 'button')
-        # req_btn.set('name', 'action_request_approval_dynamic')   # was: req_name / type="action"
-        # req_btn.set('type', 'object')
-        # req_btn.set('string', 'Request Approval')
-        # req_btn.set('class', 'oe_highlight')
-        # req_btn.set('invisible', '%s or not (%s)' % (DYNAMIC_FIELD_NAME, eligible_expr))
-        # req_btn.set('context', "{'approval_type_id': %d}" % self.id)
-
-        # view_btn = etree.SubElement(header_xpath, 'button')
-        # view_btn.set('name', view_name)
-        # view_btn.set('type', 'action')
-        # view_btn.set('string', 'View Approval')
-        # view_btn.set('invisible', 'not %s' % DYNAMIC_FIELD_NAME)
-
         req_btn = etree.SubElement(header_xpath, 'button')
         req_btn.set('name', 'action_request_approval_dynamic')
         req_btn.set('type', 'object')
@@ -299,13 +278,8 @@ class MultiApprovalType(models.Model):
         view_btn.set('string', 'View Approval')
         view_btn.set('invisible', "%s != 'submitted'" % DYNAMIC_FIELD_NAME)
 
-        # --- Hide the model's own header buttons while the record matches
-        #     the configured Domain (e.g. state == 'draft' / "Quotation") ---
         if self.hide_buttons_from_model_view and eligible_expr != 'True':
-            # IMPORTANT: use the fully RESOLVED arch (all inherited views applied),
-            # not just base_view.arch_db, otherwise buttons added by other
-            # modules (sale_management, account, etc.) are invisible to us
-            # and never get hidden -> native Confirm/Cancel keep showing.
+           
             try:
                 resolved = self.env[self.model_name].get_view(
                     view_id=base_view.id, view_type='form'
@@ -325,11 +299,6 @@ class MultiApprovalType(models.Model):
                     seen_positions[name] = seen_positions.get(name, 0) + 1
                     occurrence = seen_positions[name]
 
-                    # Handle both the modern `invisible` domain and the legacy
-                    # `states="draft,sent"` attribute. If we only add `invisible`
-                    # while `states` is still present, Odoo honors BOTH rules
-                    # independently and the button can still show -> this is
-                    # the most likely cause of buttons showing "twice"/not hiding.
                     states_attr = btn.get('states')
                     existing_invisible = (btn.get('invisible') or '0').strip()
 
@@ -372,7 +341,6 @@ class MultiApprovalType(models.Model):
         banner = etree.SubElement(sheet_xpath, 'div')
         banner.set('class', 'alert alert-info')
         banner.set('role', 'alert')
-        # banner.set('invisible', 'not %s' % DYNAMIC_FIELD_NAME)
         banner.set('invisible', "%s != 'submitted'" % DYNAMIC_FIELD_NAME)
         banner.text = 'Waiting Approval'
 
@@ -458,79 +426,24 @@ class MultiApprovalType(models.Model):
         ('none', 'None'),
     ]
 
-    document_opt = fields.Selection(
-        FIELD_OPTIONS,
-        string="Document Opt",
-        default='none',
-       
-    )
+    document_opt = fields.Selection(FIELD_OPTIONS,string="Document Opt", default='none',)
 
-    contact_opt = fields.Selection(
-        FIELD_OPTIONS,
-        string="Contact Opt",
-        default='none',
-       
-    )
+    contact_opt = fields.Selection(FIELD_OPTIONS,string="Contact Opt",default='none',)
 
-    date_opt = fields.Selection(
-        FIELD_OPTIONS,
-        string="Date Opt",
-        default='none',
-       
-    )
+    date_opt = fields.Selection(FIELD_OPTIONS,string="Date Opt", default='none',)
 
-    period_opt = fields.Selection(
-        FIELD_OPTIONS,
-        string="Period Opt",
-        default='none',
-        
-    )
+    period_opt = fields.Selection(FIELD_OPTIONS,string="Period Opt", default='none',)
 
-    item_opt = fields.Selection(
-        FIELD_OPTIONS,
-        string="Item Opt",
-        default='none',
-        
-    )
+    item_opt = fields.Selection(FIELD_OPTIONS,string="Item Opt",default='none',)
 
-    multi_items_opt = fields.Selection(
-        FIELD_OPTIONS,
-        string="Multi Items Opt",
-        default='none',
-        
-    )
+    multi_items_opt = fields.Selection(FIELD_OPTIONS,string="Multi Items Opt",default='none',)
 
-    quantity_opt = fields.Selection(
-        FIELD_OPTIONS,
-        string="Quantity Opt",
-        default='none',
-        
-    )
+    quantity_opt = fields.Selection(FIELD_OPTIONS,string="Quantity Opt",default='none',)
 
-    amount_opt = fields.Selection(
-        FIELD_OPTIONS,
-        string="Amount Opt",
-        default='none',
-        
-    )
+    amount_opt = fields.Selection(FIELD_OPTIONS,string="Amount Opt",default='none',)
 
-    payment_opt = fields.Selection(
-        FIELD_OPTIONS,
-        string="Payment Opt",
-        default='none',
-       
-    )
+    payment_opt = fields.Selection(FIELD_OPTIONS,string="Payment Opt",default='none',)
 
-    reference_opt = fields.Selection(
-        FIELD_OPTIONS,
-        string="Reference Opt",
-        default='none',
-        
-    )
+    reference_opt = fields.Selection(FIELD_OPTIONS,string="Reference Opt",default='none',)
 
-    location_opt = fields.Selection(
-        FIELD_OPTIONS,
-        string="Location Opt",
-        default='none',
-        
-    )
+    location_opt = fields.Selection( FIELD_OPTIONS,string="Location Opt",default='none',)

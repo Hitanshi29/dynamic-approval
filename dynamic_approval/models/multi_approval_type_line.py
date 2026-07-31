@@ -14,10 +14,10 @@ class MultiApproveTypeLine(models.Model):
         'multi.approval.type', string='Approval Type',
         required=True, ondelete='cascade'
     )
-    title = fields.Char(string='Title')
+    title = fields.Char(string='Title',required=True)
 
     user_id = fields.Many2one(
-        'res.users', string='User',
+        'res.users', string='User',required=True,
         domain=lambda self: [
             ('group_ids', 'in', self.env.ref('dynamic_approval.group_access_approval_admin').ids)
         ]
@@ -27,7 +27,7 @@ class MultiApproveTypeLine(models.Model):
     approval_kind = fields.Selection(
         APPROVAL_KIND, string='Type of Approval', default='mandatory'
     )
-    minimum_amount = fields.Float(string="Minimum Amount")
+    minimum_amount = fields.Float(string="Minimum Amount",required=True)
 
     def action_view_approver(self):
         self.ensure_one()

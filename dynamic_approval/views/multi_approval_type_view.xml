@@ -82,24 +82,24 @@
                                     widget="ace"
                                     options="{'mode': 'python'}"
                                     placeholder="# Code editor"
-                                    invisible="not is_model"/>
+                                    invisible="not is_model" 
+                                    readonly="is_configured"/>
 
                                 <field name="refused_action"
                                     widget="ace"
                                     options="{'mode': 'python'}"
-                                    invisible="not is_model"/>
+                                    invisible="not is_model"
+                                    readonly="is_configured"/>
                             </group>
                             <group string="Approvers">
-                                <field name="approver_ids" >
+                                <field name="approver_ids" readonly="is_configured">
                                     <list editable="bottom">
                                         <field name="title" readonly="parent.is_configured"/>
                                         <field name="user_id" widget="many2one_avatar_user" readonly="parent.is_configured"/>
                                         <!-- <field name="group_ids" widget="many2many_tags" readonly="parent.is_configured"/> -->
                                         <field name="minimum_amount" readonly="parent.is_configured"/>
                                         <field name="approval_kind" readonly="parent.is_configured"/>
-                                        <button name="action_view_approver" type="object"
-                                                string="View" 
-                                                optional="hide"/>
+                                        <button name="action_view_approver" type="object" string="View" optional="hide"/>
                                     </list>
                                 </field>
                             </group>
@@ -110,6 +110,7 @@
                         </page>
                     </notebook>
                 </sheet>
+                <chatter/>
             </form>
         </field>
     </record>

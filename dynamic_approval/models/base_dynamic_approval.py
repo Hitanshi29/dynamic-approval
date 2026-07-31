@@ -23,7 +23,7 @@ class Base(models.AbstractModel):
         record_amount = getattr(self, 'amount_total', 0.0) or 0.0
 
         if record_amount < threshold:
-            if approval_type.approved_action:   # corrected field name
+            if approval_type.approved_action:  
                 safe_eval(
                     approval_type.approved_action,
                     {'record': self, 'records': self, 'env': self.env, 'user': self.env.user},
