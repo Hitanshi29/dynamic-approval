@@ -68,7 +68,7 @@
                                     options="{'model': 'model_name'}"
                                     placeholder="Select a model to add a filter."/>
 
-                                <field name="hide_buttons_from_model_view" invisible="not is_model"/>
+                                <field name="hide_buttons_from_model_view" invisible="not is_model" readonly="is_configured"/>
                             
 
                                 <field name="approved_action"

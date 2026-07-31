@@ -22,8 +22,8 @@
                             class="oe_highlight" invisible="state != 'submitted' or not is_approver"/>
 
                     <!-- <widget name="approval_document_uploader"/> -->
-                    <button name="action_change_approver" string="Change Approver" type="object"
-                            invisible="state != 'submitted'" groups="dynamic_approval.group_access_approval_admin"/>
+                    <!-- <button name="action_change_approver" string="Change Approver" type="object"
+                            invisible="state != 'submitted'" groups="dynamic_approval.group_access_approval_admin"/> -->
 
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,submitted,approved,cancel"/>

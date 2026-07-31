@@ -170,7 +170,8 @@ class MultiApprovalType(models.Model):
             'name': DYNAMIC_FIELD_NAME,
             'field_description': 'Approval Pending',
             'model_id': self.model_id.id,
-            'ttype': 'boolean',
+            'ttype': 'char', 
+            # 'ttype': 'boolean',
             'copied': False,
         })
         self.generated_field_id = field.id
@@ -340,12 +341,10 @@ class MultiApprovalType(models.Model):
                                 if existing_invisible != '0' else states_expr
                             )
 
+                    # combined = '(%s) or ((%s) and %s != \'resolved\')' % (existing_invisible, eligible_expr, DYNAMIC_FIELD_NAME)
                     combined = '(%s) or (%s)' % (existing_invisible, eligible_expr)
 
-                    # Target this exact button occurrence (in case the same
-                    # `name` appears more than once in the resolved arch, e.g.
-                    # duplicated per state-branch) so we don't accidentally
-                    # touch the wrong node or skip one.
+                
                     btn_xpath = etree.SubElement(data, 'xpath')
                     btn_xpath.set(
                         'expr',
@@ -391,7 +390,6 @@ class MultiApprovalType(models.Model):
             })
 
 
-    # add this field near the other Text fields (approved_action / refused_action)
     description_template = fields.Html(
         string='Description Template',
         default=lambda self: _(

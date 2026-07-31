@@ -339,6 +339,15 @@ class ApprovalRequest(models.Model):
                 }))
             rec.line_ids = commands
 
+    # def action_submit(self):
+    #     for rec in self:
+    #         if not rec.approver_id:
+    #             raise UserError(_('Please select an Approver before submitting.'))
+    #         rec._check_dynamic_required_fields()
+    #         rec._build_approval_lines()
+    #         rec.state = 'submitted'
+    #         rec.message_post(body=_('Approval created'))
+    #         rec._set_dynamic_flag(True)
     def action_submit(self):
         for rec in self:
             if not rec.approver_id:
@@ -347,7 +356,7 @@ class ApprovalRequest(models.Model):
             rec._build_approval_lines()
             rec.state = 'submitted'
             rec.message_post(body=_('Approval created'))
-            rec._set_dynamic_flag(True)
+            rec._set_dynamic_flag('submitted')          
 
   
     def action_approve(self):
@@ -367,8 +376,8 @@ class ApprovalRequest(models.Model):
                     continue
 
                 rec.state = 'approved'
-                rec._run_type_action('approved_action')
-                rec._set_dynamic_flag(False)          # <-- back in
+                rec._run_type_action('approved_action')  
+                rec._set_dynamic_flag('resolved')       
                 rec._send_status_mail('mail_template_approval_approved')
                 continue
 
@@ -376,7 +385,7 @@ class ApprovalRequest(models.Model):
                 raise UserError(_('Only the assigned approver can approve this request.'))
             rec.state = 'approved'
             rec._run_type_action('approved_action')
-            rec._set_dynamic_flag(False)              # <-- back in
+            rec._set_dynamic_flag('resolved')             
             rec._send_status_mail('mail_template_approval_approved')
 
     def action_cancel(self):
@@ -392,7 +401,7 @@ class ApprovalRequest(models.Model):
                 rec.line_ids.filtered(lambda l: l.state == 'waiting').write({'state': 'cancel'})
                 rec.state = 'cancel'
                 rec._run_type_action('refused_action')
-                rec._set_dynamic_flag(False)
+                rec._set_dynamic_flag('resolved')
                 rec.message_post(body=_('Step "%s" cancel by %s.') % (active_line.title, active_line.user_id.name))
                 continue
 
@@ -401,24 +410,24 @@ class ApprovalRequest(models.Model):
                 raise UserError(_('Only the assigned approver can cancel this request.'))
             rec.state = 'cancel'
             rec._run_type_action('refused_action')
-            rec._set_dynamic_flag(False)
+            rec._set_dynamic_flag('resolved')
             rec.message_post(body=_('Request cancel by %s.') % rec.approver_id.name)
 
     def action_draft(self):
         for rec in self:
             rec.state = 'draft'
 
-    def action_change_approver(self):
-        """Opens the Change Approver wizard (New Approver + Reason)."""
-        self.ensure_one()
-        return {
-            'name': _('Change Approver'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'approval.change.user.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {'default_request_id': self.id},
-        }
+    # def action_change_approver(self):
+    #     """Opens the Change Approver wizard (New Approver + Reason)."""
+    #     self.ensure_one()
+    #     return {
+    #         'name': _('Change Approver'),
+    #         'type': 'ir.actions.act_window',
+    #         'res_model': 'approval.change.user.wizard',
+    #         'view_mode': 'form',
+    #         'target': 'new',
+    #         'context': {'default_request_id': self.id},
+    #     }
 
     def action_attach_document(self, attachment_ids):
         self.ensure_one()
