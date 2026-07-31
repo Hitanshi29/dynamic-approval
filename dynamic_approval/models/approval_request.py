@@ -2,6 +2,9 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from odoo.tools.safe_eval import safe_eval
 
+import logging
+_logger = logging.getLogger(__name__)
+
 
 class ApprovalRequest(models.Model):
     _name = 'approval.request'
@@ -339,15 +342,7 @@ class ApprovalRequest(models.Model):
                 }))
             rec.line_ids = commands
 
-    # def action_submit(self):
-    #     for rec in self:
-    #         if not rec.approver_id:
-    #             raise UserError(_('Please select an Approver before submitting.'))
-    #         rec._check_dynamic_required_fields()
-    #         rec._build_approval_lines()
-    #         rec.state = 'submitted'
-    #         rec.message_post(body=_('Approval created'))
-    #         rec._set_dynamic_flag(True)
+   
     def action_submit(self):
         for rec in self:
             if not rec.approver_id:
@@ -356,9 +351,32 @@ class ApprovalRequest(models.Model):
             rec._build_approval_lines()
             rec.state = 'submitted'
             rec.message_post(body=_('Approval created'))
-            rec._set_dynamic_flag('submitted')          
+            rec._set_dynamic_flag('submitted') 
+            rec._send_status_mail('mail_template_approval_step_assigned')
+
 
   
+    # def action_approve(self):
+    #     for rec in self:
+    #         active_line = rec.line_ids.filtered(lambda l: l.state == 'to_approve')[:1]
+
+    #         if active_line:
+    #             if active_line.user_id.id != self.env.uid:
+    #                 raise UserError(_('Only the assigned approver can approve this step.'))
+    #             active_line.write({'state': 'approved', 'approved_date': fields.Datetime.now()})
+    #             rec.message_post(body=_('Step "%s" approved by %s.') % (active_line.title, active_line.user_id.name))
+
+    #             next_line = rec.line_ids.filtered(lambda l: l.state == 'waiting')[:1]
+    #             if next_line:
+    #                 next_line.state = 'to_approve'
+    #                 rec.approver_id = next_line.user_id.id
+    #                 continue
+
+    #             rec.state = 'approved'
+    #             rec._run_type_action('approved_action')  
+    #             rec._set_dynamic_flag('resolved')       
+    #             rec._send_status_mail('mail_template_approval_approved')
+    #             continue
     def action_approve(self):
         for rec in self:
             active_line = rec.line_ids.filtered(lambda l: l.state == 'to_approve')[:1]
@@ -373,12 +391,15 @@ class ApprovalRequest(models.Model):
                 if next_line:
                     next_line.state = 'to_approve'
                     rec.approver_id = next_line.user_id.id
+                    # rec._send_status_mail('mail_template_approval_step_assigned')
+                    rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)   
                     continue
 
                 rec.state = 'approved'
-                rec._run_type_action('approved_action')  
-                rec._set_dynamic_flag('resolved')       
-                rec._send_status_mail('mail_template_approval_approved')
+                rec._run_type_action('approved_action')
+                rec._set_dynamic_flag('resolved')
+                # rec._send_status_mail('mail_template_approval_approved')
+                rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)
                 continue
 
             if rec.approver_id.id != self.env.uid:
@@ -386,11 +407,10 @@ class ApprovalRequest(models.Model):
             rec.state = 'approved'
             rec._run_type_action('approved_action')
             rec._set_dynamic_flag('resolved')             
-            rec._send_status_mail('mail_template_approval_approved')
+            # rec._send_status_mail('mail_template_approval_approved')
+            rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)
 
     def action_cancel(self):
-        # for rec in self:
-        #     rec.state = 'cancel'
         for rec in self:
             active_line = rec.line_ids.filtered(lambda l: l.state == 'to_approve')[:1]
 
@@ -436,10 +456,47 @@ class ApprovalRequest(models.Model):
             attachment_ids=attachment_ids,
         )
 
-    def _send_status_mail(self, template_xmlid):
-        template = self.env.ref('approval_request.%s' % template_xmlid, raise_if_not_found=False)
-        if template:
-            template.send_mail(self.id, force_send=True)
+    def _send_status_mail(self, template_xmlid, recipient_user=None):
+        try:
+            self._send_status_mail_impl(template_xmlid, recipient_user)
+        except Exception:
+            _logger.exception(
+                'Failed to send approval status mail (%s) for %s',
+                template_xmlid, self.name
+            )
+
+    def _send_status_mail_impl(self, template_xmlid, recipient_user=None):
+        self.ensure_one()
+        template = self.env.ref('dynamic_approval.%s' % template_xmlid, raise_if_not_found=False)
+        if not template:
+            return
+
+        # Default recipient is the current approver (step-assigned mails).
+        # Callers can override this — e.g. the "approved" mail goes to the requester.
+        recipient_user = recipient_user or self.approver_id
+
+        subject = template._render_field('subject', self.ids)[self.id]
+        body = template._render_field('body_html', self.ids)[self.id]
+
+        self.message_post(
+            body=body,
+            subject=subject,
+            subtype_xmlid='mail.mt_comment',
+            partner_ids=recipient_user.partner_id.ids,
+        )
+
+        if recipient_user.email:
+            template.send_mail(
+                self.id,
+                force_send=True,
+                email_values={'email_to': recipient_user.email},
+            )
+        else:
+            _logger.warning(
+                'Recipient %s has no email set; status mail (%s) not sent for %s',
+                recipient_user.name, template_xmlid, self.name
+            )
+
 
     # has_additional_fields = fields.Boolean(
     #     string='Has Additional Fields', compute='_compute_has_additional_fields')
