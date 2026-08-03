@@ -1,6 +1,7 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from odoo.tools.safe_eval import safe_eval
+from odoo.fields import Domain
 
 import logging
 _logger = logging.getLogger(__name__)
@@ -175,10 +176,36 @@ class ApprovalRequest(models.Model):
         approval_type = self.env['multi.approval.type'].browse(type_id)
         record = self.env[res_model].browse(res_id)
 
+        # if approval_type.domain and approval_type.domain != '[]':
+        #     domain = safe_eval(approval_type.domain)
+
+        #     _logger.info(">>>>>>>>>>>>>>>>>>>>>>Approval Domain: %s", domain)
+        #     _logger.info(
+        #         ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>Matched Records: %s",
+        #         self.env[res_model].search(domain).ids
+        #     )
+        #     if not self.env[res_model].search_count(domain + [('id', '=', res_id)]):
+        #         raise UserError(_('This record does not currently meet the approval conditions.'))
         if approval_type.domain and approval_type.domain != '[]':
             domain = safe_eval(approval_type.domain)
-            if not self.env[res_model].search_count(domain + [('id', '=', res_id)]):
-                raise UserError(_('This record does not currently meet the approval conditions.'))
+
+            final_domain = Domain.AND([
+                [('id', '=', res_id)],
+                domain,
+            ])
+
+            _logger.info(">>>>>>>>>>Current Record ID: %s", res_id)
+            _logger.info(">>>>>>>>>>>>>>>>Original Domain: %s", domain)
+            _logger.info(">>>>>>>>>>>>>>>Final Domain: %s", final_domain)
+            _logger.info(
+                ">>>>>>>>>>>>>>>>>>>>>>Matched Record IDs: %s",
+                self.env[res_model].search(final_domain).ids
+            )
+
+            if not self.env[res_model].search_count(final_domain):
+                raise UserError(
+                    _('This record does not currently meet the approval conditions.')
+                )
 
         # pick the approver to default in: prefer the first "Mandatory"
         # line, fall back to the first line of any kind, else none.
