@@ -42,7 +42,7 @@ class MultiApprovalType(models.Model):
     )
 
     hide_buttons_from_model_view = fields.Boolean(
-        string='Hide Buttons from Model View?',
+        string='Hide Buttons from Model View?',default=True,
         help='If checked, the record\'s own workflow buttons are hidden while approval is pending.'
     )
 

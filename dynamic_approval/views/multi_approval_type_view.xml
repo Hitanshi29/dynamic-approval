@@ -75,10 +75,13 @@
                                     options="{'model': 'model_name'}"
                                     placeholder="Select a model to add a filter."/>
 
-                                <field name="hide_buttons_from_model_view" invisible="not is_model" readonly="is_configured"/>
+                                <!-- <field name="hide_buttons_from_model_view" invisible="not is_model" readonly="is_configured" invisible="1"/> -->
+
+                                <field name="hide_buttons_from_model_view" readonly="is_configured" invisible="1"/>
+
                             
 
-                                <field name="approved_action"
+                                <!-- <field name="approved_action"
                                     widget="ace"
                                     options="{'mode': 'python'}"
                                     placeholder="# Code editor"
@@ -89,7 +92,7 @@
                                     widget="ace"
                                     options="{'mode': 'python'}"
                                     invisible="not is_model"
-                                    readonly="is_configured"/>
+                                    readonly="is_configured"/> -->
                             </group>
                             <group string="Approvers">
                                 <field name="approver_ids" readonly="is_configured">

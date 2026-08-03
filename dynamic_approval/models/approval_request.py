@@ -428,6 +428,7 @@ class ApprovalRequest(models.Model):
             # rec._send_status_mail('mail_template_approval_approved')
             rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)
 
+    
     def action_cancel(self):
         for rec in self:
             active_line = rec.line_ids.filtered(lambda l: l.state == 'to_approve')[:1]
@@ -440,6 +441,7 @@ class ApprovalRequest(models.Model):
                 rec.state = 'cancel'
                 rec._run_type_action('refused_action')
                 rec._set_dynamic_flag('rejected')
+                rec._send_status_mail('mail_template_approval_refused',recipient_user=rec.request_by)
                 rec.message_post(body=_('Step "%s" cancel by %s.') % (active_line.title, active_line.user_id.name))
                 continue
 
@@ -449,6 +451,7 @@ class ApprovalRequest(models.Model):
             rec.state = 'cancel'
             rec._run_type_action('refused_action')
             rec._set_dynamic_flag('rejected')
+            rec._send_status_mail('mail_template_approval_refused',recipient_user=rec.request_by)
             rec.message_post(body=_('Request cancel by %s.') % rec.approver_id.name)
 
     def action_draft(self):
