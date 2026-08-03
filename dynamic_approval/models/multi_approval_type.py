@@ -200,33 +200,100 @@ class MultiApprovalType(models.Model):
                 ),
             })
 
-    def _domain_fields_and_expr(self, domain_str):
-        """Turns a simple AND-only domain like [('state','=','draft')] into
-        a boolean expression the view can evaluate live in the browser
-        (e.g. state == 'draft'), plus the field names it needs declared in
-        the arch. Anything more complex (OR, nested domains) safely falls
-        back to 'always eligible' here — the real check still happens
-        server-side in _open_request_wizard, so nothing is bypassed."""
-        import ast
-        try:
-            domain = ast.literal_eval(domain_str or '[]')
-        except Exception:
-            return [], 'True'
-        if not domain:
-            return [], 'True'
+    # def _domain_fields_and_expr(self, domain_str):
+    #     """Turns a simple AND-only domain like [('state','=','draft')] into
+    #     a boolean expression the view can evaluate live in the browser
+    #     (e.g. state == 'draft'), plus the field names it needs declared in
+    #     the arch. Anything more complex (OR, nested domains) safely falls
+    #     back to 'always eligible' here — the real check still happens
+    #     server-side in _open_request_wizard, so nothing is bypassed."""
+    #     import ast
+    #     try:
+    #         domain = ast.literal_eval(domain_str or '[]')
+    #     except Exception:
+    #         return [], 'True'
+    #     if not domain:
+    #         return [], 'True'
 
-        ops = {'=': '==', '!=': '!=', 'in': 'in', 'not in': 'not in',
-               '>': '>', '<': '<', '>=': '>=', '<=': '<='}
-        fields_used, parts = [], []
-        for leaf in domain:
-            if not (isinstance(leaf, (list, tuple)) and len(leaf) == 3):
-                return [], 'True'
-            field, op, value = leaf
-            if op not in ops:
-                return [], 'True'
-            fields_used.append(field)
-            parts.append("%s %s %r" % (field, ops[op], value))
-        return fields_used, ' and '.join(parts)
+    #     ops = {'=': '==', '!=': '!=', 'in': 'in', 'not in': 'not in',
+    #            '>': '>', '<': '<', '>=': '>=', '<=': '<='}
+    #     fields_used, parts = [], []
+    #     for leaf in domain:
+    #         if not (isinstance(leaf, (list, tuple)) and len(leaf) == 3):
+    #             return [], 'True'
+    #         field, op, value = leaf
+    #         if op not in ops:
+    #             return [], 'True'
+    #         fields_used.append(field)
+    #         parts.append("%s %s %r" % (field, ops[op], value))
+    #     return fields_used, ' and '.join(parts)
+
+    def _domain_fields_and_expr(self, domain_str):
+        """Convert an Odoo domain into a JS/view expression.
+
+        Supports:
+        &, |, !
+        =, !=, >, <, >=, <=, in, not in
+        """
+        import ast
+
+        try:
+            domain = ast.literal_eval(domain_str or "[]")
+        except Exception:
+            return [], "True"
+
+        if not domain:
+            return [], "True"
+
+        fields_used = set()
+
+        op_map = { "=": "==","!=": "!=",">": ">","<": "<",">=": ">=","<=": "<=","in": "in","not in": "not in",}
+
+        def leaf_to_expr(leaf):
+            field, operator, value = leaf
+            fields_used.add(field)
+
+            if operator not in op_map:
+                return "True"
+
+            return "%s %s %r" % (field, op_map[operator], value)
+
+        def parse(tokens):
+            token = tokens.pop(0)
+
+            if token == "&":
+                left = parse(tokens)
+                right = parse(tokens)
+                return "(%s) and (%s)" % (left, right)
+
+            elif token == "|":
+                left = parse(tokens)
+                right = parse(tokens)
+                return "(%s) or (%s)" % (left, right)
+
+            elif token == "!":
+                expr = parse(tokens)
+                return "not (%s)" % expr
+
+            elif isinstance(token, (tuple, list)) and len(token) == 3:
+                return leaf_to_expr(token)
+
+            return "True"
+
+        tokens = list(domain)
+
+        # Prefix notation (&,|,!)
+        if tokens and tokens[0] in ("&", "|", "!"):
+            expr = parse(tokens)
+        else:
+            # Flat AND domain
+            expr = " and ".join(
+                leaf_to_expr(x)
+                for x in tokens
+                if isinstance(x, (tuple, list))
+            )
+
+        return list(fields_used), expr
 
 
     def _ensure_generated_view(self):
@@ -312,7 +379,16 @@ class MultiApprovalType(models.Model):
                             )
 
                     # combined = '(%s) or ((%s) and %s != \'resolved\')' % (existing_invisible, eligible_expr, DYNAMIC_FIELD_NAME)
-                    combined = '(%s) or (%s)' % (existing_invisible, eligible_expr)
+                    
+
+                    combined = (
+                        "(%s) or "
+                        "((%s) and %s != 'resolved')"
+                    ) % (
+                        existing_invisible,
+                        eligible_expr,
+                        DYNAMIC_FIELD_NAME,
+                    )
 
                 
                     btn_xpath = etree.SubElement(data, 'xpath')
