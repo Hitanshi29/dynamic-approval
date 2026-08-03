@@ -395,28 +395,6 @@ class ApprovalRequest(models.Model):
             rec._send_status_mail('mail_template_approval_step_assigned')
 
 
-  
-    # def action_approve(self):
-    #     for rec in self:
-    #         active_line = rec.line_ids.filtered(lambda l: l.state == 'to_approve')[:1]
-
-    #         if active_line:
-    #             if active_line.user_id.id != self.env.uid:
-    #                 raise UserError(_('Only the assigned approver can approve this step.'))
-    #             active_line.write({'state': 'approved', 'approved_date': fields.Datetime.now()})
-    #             rec.message_post(body=_('Step "%s" approved by %s.') % (active_line.title, active_line.user_id.name))
-
-    #             next_line = rec.line_ids.filtered(lambda l: l.state == 'waiting')[:1]
-    #             if next_line:
-    #                 next_line.state = 'to_approve'
-    #                 rec.approver_id = next_line.user_id.id
-    #                 continue
-
-    #             rec.state = 'approved'
-    #             rec._run_type_action('approved_action')  
-    #             rec._set_dynamic_flag('resolved')       
-    #             rec._send_status_mail('mail_template_approval_approved')
-    #             continue
     def action_approve(self):
         for rec in self:
             active_line = rec.line_ids.filtered(lambda l: l.state == 'to_approve')[:1]
@@ -437,7 +415,7 @@ class ApprovalRequest(models.Model):
 
                 rec.state = 'approved'
                 rec._run_type_action('approved_action')
-                rec._set_dynamic_flag('resolved')
+                rec._set_dynamic_flag('approved')
                 # rec._send_status_mail('mail_template_approval_approved')
                 rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)
                 continue
@@ -446,7 +424,7 @@ class ApprovalRequest(models.Model):
                 raise UserError(_('Only the assigned approver can approve this request.'))
             rec.state = 'approved'
             rec._run_type_action('approved_action')
-            rec._set_dynamic_flag('resolved')             
+            rec._set_dynamic_flag('approved')             
             # rec._send_status_mail('mail_template_approval_approved')
             rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)
 
@@ -461,7 +439,7 @@ class ApprovalRequest(models.Model):
                 rec.line_ids.filtered(lambda l: l.state == 'waiting').write({'state': 'cancel'})
                 rec.state = 'cancel'
                 rec._run_type_action('refused_action')
-                rec._set_dynamic_flag('resolved')
+                rec._set_dynamic_flag('rejected')
                 rec.message_post(body=_('Step "%s" cancel by %s.') % (active_line.title, active_line.user_id.name))
                 continue
 
@@ -470,7 +448,7 @@ class ApprovalRequest(models.Model):
                 raise UserError(_('Only the assigned approver can cancel this request.'))
             rec.state = 'cancel'
             rec._run_type_action('refused_action')
-            rec._set_dynamic_flag('resolved')
+            rec._set_dynamic_flag('rejected')
             rec.message_post(body=_('Request cancel by %s.') % rec.approver_id.name)
 
     def action_draft(self):

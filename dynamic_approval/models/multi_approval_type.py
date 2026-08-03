@@ -336,14 +336,25 @@ class MultiApprovalType(models.Model):
         req_btn.set('type', 'object')
         req_btn.set('string', 'Request Approval')
         req_btn.set('class', 'oe_highlight')
-        req_btn.set('invisible', "%s in ('submitted', 'resolved') or not (%s)" % (DYNAMIC_FIELD_NAME, eligible_expr))
+        req_btn.set('invisible', "%s in ('submitted', 'approved', 'rejected', 'resolved') or not (%s)" % (DYNAMIC_FIELD_NAME, eligible_expr))
+        # req_btn.set('invisible', "%s in ('submitted', 'approved', 'rejected') or not (%s)" % (DYNAMIC_FIELD_NAME, eligible_expr))
         req_btn.set('context', "{'approval_type_id': %d}" % self.id)
 
         view_btn = etree.SubElement(header_xpath, 'button')
         view_btn.set('name', view_name)
         view_btn.set('type', 'action')
         view_btn.set('string', 'View Approval')
-        view_btn.set('invisible', "%s != 'submitted'" % DYNAMIC_FIELD_NAME)
+        view_btn.set('invisible', "%s not in ('submitted', 'rejected')" % DYNAMIC_FIELD_NAME)
+
+        reset_btn = etree.SubElement(header_xpath, 'button')
+        reset_btn.set('name', 'action_reset_dynamic_approval')
+        reset_btn.set('type', 'object')
+        reset_btn.set('string', 'Request Again')
+        reset_btn.set('class', 'btn-secondary')
+        reset_btn.set(
+            'invisible',
+            "%s != 'rejected'" % DYNAMIC_FIELD_NAME
+        )
 
         if self.hide_buttons_from_model_view and eligible_expr != 'True':
            
@@ -378,12 +389,9 @@ class MultiApprovalType(models.Model):
                                 if existing_invisible != '0' else states_expr
                             )
 
-                    # combined = '(%s) or ((%s) and %s != \'resolved\')' % (existing_invisible, eligible_expr, DYNAMIC_FIELD_NAME)
-                    
-
                     combined = (
                         "(%s) or "
-                        "((%s) and %s != 'resolved')"
+                        "((%s) and %s not in ('approved', 'resolved'))"
                     ) % (
                         existing_invisible,
                         eligible_expr,
@@ -419,6 +427,19 @@ class MultiApprovalType(models.Model):
         banner.set('role', 'alert')
         banner.set('invisible', "%s != 'submitted'" % DYNAMIC_FIELD_NAME)
         banner.text = 'Waiting Approval'
+
+        # --- "Approval Rejected" banner ---
+        reject_xpath = etree.SubElement(data, 'xpath')
+        reject_xpath.set('expr', "//form/sheet")
+        reject_xpath.set('position', 'before')
+
+        reject_banner = etree.SubElement(reject_xpath, 'div')
+        reject_banner.set('class', 'alert alert-danger')
+        reject_banner.set('role', 'alert')
+        reject_banner.set('invisible',"%s != 'rejected'" % DYNAMIC_FIELD_NAME)
+        reject_banner.text = (
+            "Approval was rejected. Please modify this document and request approval again."
+        )
 
         arch = etree.tostring(data, encoding='unicode')
 

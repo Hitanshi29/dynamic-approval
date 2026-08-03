@@ -1,12 +1,23 @@
-from odoo import models, _
+from odoo import fields, models, _
 from odoo.exceptions import UserError
 from odoo.tools.safe_eval import safe_eval
 
-from .multi_approval_type import DYNAMIC_FIELD_NAME   # import your constant
+from .multi_approval_type import DYNAMIC_FIELD_NAME 
 
 
 class Base(models.AbstractModel):
     _inherit = 'base'
+
+
+    def action_reset_dynamic_approval(self):
+        self.ensure_one()
+
+        if 'x_dynamic_approval_pending' in self._fields:
+            self.write({
+                'x_dynamic_approval_pending': False,
+            })
+
+        return True
 
     def action_request_approval_dynamic(self):
         self.ensure_one()
