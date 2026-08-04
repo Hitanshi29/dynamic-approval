@@ -382,6 +382,21 @@ class ApprovalRequest(models.Model):
                 }))
             rec.line_ids = commands
 
+    def _post_message_on_source_record(self, body):
+        """Post a chatter note on the actual business document (e.g. the
+        Purchase Order), not on the approval.request. Generic — works for
+        ANY res_model as long as it inherits mail.thread, so no per-model
+        inheritance is needed in this module."""
+        self.ensure_one()
+        if not (self.res_model and self.res_id):
+            return
+        target_model = self.env[self.res_model]
+        if 'message_post' not in target_model._fields and not hasattr(target_model, 'message_post'):
+            return
+        record = target_model.sudo().browse(self.res_id)
+        if record.exists():
+            record.message_post(body=body)
+
    
     def action_submit(self):
         for rec in self:
@@ -393,6 +408,9 @@ class ApprovalRequest(models.Model):
             rec.message_post(body=_('Approval created'))
             rec._set_dynamic_flag('submitted') 
             rec._send_status_mail('mail_template_approval_step_assigned')
+            rec._post_message_on_source_record(
+                _('Approval requested — "%s" (waiting on %s).') % (rec.type_id.name, rec.approver_id.name)
+            )
 
 
     def action_approve(self):
@@ -404,30 +422,39 @@ class ApprovalRequest(models.Model):
                     raise UserError(_('Only the assigned approver can approve this step.'))
                 active_line.write({'state': 'approved', 'approved_date': fields.Datetime.now()})
                 rec.message_post(body=_('Step "%s" approved by %s.') % (active_line.title, active_line.user_id.name))
+                rec._post_message_on_source_record(
+                    _('Approval step "%s" approved by %s.') % (active_line.title, active_line.user_id.name)
+                )
 
                 next_line = rec.line_ids.filtered(lambda l: l.state == 'waiting')[:1]
                 if next_line:
                     next_line.state = 'to_approve'
                     rec.approver_id = next_line.user_id.id
-                    # rec._send_status_mail('mail_template_approval_step_assigned')
-                    rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)   
-                    continue
+                    rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)
+                    rec._post_message_on_source_record(
+                        _('%s -> %s(Approver)') % (active_line.user_id.name, next_line.user_id.name)
+                    )
+                    continue  
 
                 rec.state = 'approved'
                 rec._run_type_action('approved_action')
                 rec._set_dynamic_flag('approved')
-                # rec._send_status_mail('mail_template_approval_approved')
                 rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)
+                rec._post_message_on_source_record(
+                    _('Approval "%s" fully approved. Last step by %s.') % (rec.type_id.name, active_line.user_id.name)
+                )
                 continue
 
+            # --- legacy: only reached if the Approval Type has NO approver lines at all ---
             if rec.approver_id.id != self.env.uid:
                 raise UserError(_('Only the assigned approver can approve this request.'))
             rec.state = 'approved'
             rec._run_type_action('approved_action')
-            rec._set_dynamic_flag('approved')             
-            # rec._send_status_mail('mail_template_approval_approved')
+            rec._set_dynamic_flag('approved')
             rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)
-
+            rec._post_message_on_source_record(
+                _('Approval "%s" approved by %s.') % (rec.type_id.name, rec.approver_id.name)
+            )
     
     def action_cancel(self):
         for rec in self:
@@ -441,18 +468,28 @@ class ApprovalRequest(models.Model):
                 rec.state = 'cancel'
                 rec._run_type_action('refused_action')
                 rec._set_dynamic_flag('rejected')
-                rec._send_status_mail('mail_template_approval_refused',recipient_user=rec.request_by)
+                rec._send_status_mail('mail_template_approval_refused', recipient_user=rec.request_by)
                 rec.message_post(body=_('Step "%s" cancel by %s.') % (active_line.title, active_line.user_id.name))
+                # NEW: note on the source record (PO) — this branch is the one that actually runs
+                rec._post_message_on_source_record(
+                    _('Approval "%s" was cancel at step "%s" by %s.') % (
+                        rec.type_id.name, active_line.title, active_line.user_id.name
+                    )
+                )
                 continue
 
-            # --- legacy single-approver flow ---
+            # --- legacy single-approver flow (only if no approver lines exist) ---
             if rec.approver_id.id != self.env.uid:
                 raise UserError(_('Only the assigned approver can cancel this request.'))
             rec.state = 'cancel'
             rec._run_type_action('refused_action')
             rec._set_dynamic_flag('rejected')
-            rec._send_status_mail('mail_template_approval_refused',recipient_user=rec.request_by)
+            rec._send_status_mail('mail_template_approval_refused', recipient_user=rec.request_by)
             rec.message_post(body=_('Request cancel by %s.') % rec.approver_id.name)
+            # NEW: note on the source record (PO)
+            rec._post_message_on_source_record(
+                _('Approval "%s" was cancel by %s.') % (rec.type_id.name, rec.approver_id.name)
+            )
 
     def action_draft(self):
         for rec in self:
@@ -492,19 +529,7 @@ class ApprovalRequest(models.Model):
         if not template:
             return
 
-        # Default recipient is the current approver (step-assigned mails).
-        # Callers can override this — e.g. the "approved" mail goes to the requester.
         recipient_user = recipient_user or self.approver_id
-
-        subject = template._render_field('subject', self.ids)[self.id]
-        body = template._render_field('body_html', self.ids)[self.id]
-
-        self.message_post(
-            body=body,
-            subject=subject,
-            subtype_xmlid='mail.mt_comment',
-            partner_ids=recipient_user.partner_id.ids,
-        )
 
         if recipient_user.email:
             template.send_mail(
@@ -513,27 +538,15 @@ class ApprovalRequest(models.Model):
                 email_values={'email_to': recipient_user.email},
             )
         else:
+            subject = template._render_field('subject', self.ids)[self.id]
+            body = template._render_field('body_html', self.ids)[self.id]
+            self.message_post(
+                body=body,
+                subject=subject,
+                subtype_xmlid='mail.mt_comment',
+                partner_ids=recipient_user.partner_id.ids,
+            )
             _logger.warning(
                 'Recipient %s has no email set; status mail (%s) not sent for %s',
                 recipient_user.name, template_xmlid, self.name
             )
-
-
-    # has_additional_fields = fields.Boolean(
-    #     string='Has Additional Fields', compute='_compute_has_additional_fields')
-
-    # @api.depends(
-    #     'type_id.document_opt', 'type_id.contact_opt', 'type_id.date_opt',
-    #     'type_id.period_opt', 'type_id.item_opt', 'type_id.multi_items_opt',
-    #     'type_id.quantity_opt', 'type_id.amount_opt', 'type_id.payment_opt',
-    #     'type_id.reference_opt', 'type_id.location_opt',
-    # )
-    # def _compute_has_additional_fields(self):
-    #     for rec in self:
-    #         opts = (
-    #             rec.type_id.document_opt, rec.type_id.contact_opt, rec.type_id.date_opt,
-    #             rec.type_id.period_opt, rec.type_id.item_opt, rec.type_id.multi_items_opt,
-    #             rec.type_id.quantity_opt, rec.type_id.amount_opt, rec.type_id.payment_opt,
-    #             rec.type_id.reference_opt, rec.type_id.location_opt,
-    #         )
-    #         rec.has_additional_fields = any(o and o != 'none' for o in opts)
