@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Part of Bizople Solutions Pvt. Ltd. -->
+<!-- Licensed under the Bizople Proprietary License v1.0. -->
+<!-- Copyright (C) 2026 Bizople Solutions Pvt. Ltd. -->
+
+<odoo>
+    <record id="view_solar_team_form" model="ir.ui.view">
+        <field name="name">team.management.form</field>
+        <field name="model">team.management</field>
+        <field name="arch" type="xml">
+            <form string="Team Management">
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="available,assigned,working,completed" invisible="team_type != 'survey_team'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="available,assigned,working" invisible="team_type not in ['qa_team','site_inspection_team']"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+
+                        <button name="action_view_inspections" type="object" class="oe_stat_button" icon="fa-tasks" invisible="team_type != 'survey_team'">
+                            <field name="inspection_count" widget="statinfo" string="Inspections"/>
+                        </button>
+                        <button name="action_view_installation" type="object" class="oe_stat_button" icon="fa-tasks" invisible="team_type != 'site_inspection_team'">
+                            <field name="installation_count" widget="statinfo" string="Installation"/>
+                        </button>
+                        <button name="action_view_qa" type="object" class="oe_stat_button" icon="fa-tasks" invisible="team_type != 'qa_team'">
+                            <field name="qa_count" widget="statinfo" string="QA"/>
+                        </button>
+
+                    </div>
+
+                    <field name="name"/>
+                    <group>
+                        <group string="Company Information">
+                            <field name="company_id"/>
+                            <field name="team_type" invisible="1"/>
+                        </group>
+                        
+                        <group string="project Information">
+                            <field name="current_inspection_id" readonly="1" invisible="team_type != 'survey_team'"/>
+                            <field name="current_installation_id" readonly="1" invisible="team_type != 'site_inspection_team'"/>
+                            <field name="current_installation_task_id" readonly="1" invisible="team_type != 'site_inspection_team'"/>
+                            
+                            <field name="current_qa_id" readonly="1" invisible="team_type != 'qa_team'"/>
+                            <field name="current_qa_task_id"  readonly="1" invisible="team_type != 'qa_team'"/>
+                            <!-- <field name="start_date" readonly="1" invisible="team_type != 'survey_team'"/>
+                            <field name="completion_date" readonly="1" invisible="team_type != 'survey_team'"/> -->
+                            <!-- <field name="state" readonly="1"/> -->
+                        </group>
+
+                        <group string="Team Information">
+                            <field name="leader_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Team Member">
+                            <field name="member_ids" mode="kanban" />
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form> 
+        </field>
+    </record>
+
+    <record id="view_solar_team_list" model="ir.ui.view">
+        <field name="name">team.management.list</field>
+        <field name="model">team.management</field>
+        <field name="arch" type="xml">
+            <list string="Team">
+                <field name="name"/>
+                <field name="company_id"/>
+                <field name="leader_id"/>
+                <field name="member_ids" widget="many2many_avatar_user" options="{'no_create': False}"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="kanban_view_team_manage" model="ir.ui.view">
+        <field name="name">team.management.kanban</field>
+        <field name="model">team.management</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" quick_create="false"  records_draggable="false">
+                
+                <templates>
+                    <t t-name="menu">
+                        <t t-if="widget.editable"><a role="menuitem" type="open" class="dropdown-item">Edit</a></t>
+                        <t t-if="widget.deletable"><a role="menuitem" type="delete" class="dropdown-item">Delete</a></t>
+                        
+                    </t>
+                    <t t-name="card">
+                        <strong class="fs-3"><field name="name"/></strong>
+                        <div class="fs-4">
+                            <i class="fa fa-building text-warning me-1 mt-1" title="company"/><field name="company_id"/>
+                        </div>
+                        <div class="d-flex fs-4">
+                            <i class="fa fa-user text-warning me-1 mt-1" title="leader"/>Leader : <br/>
+                            <!-- <field name="leader_id" class="text-truncate" widget="many2one_avatar"/> -->
+                            <field name="leader_id" class="ms-2 text-truncate"/>
+                        </div>
+
+                        <div class="fs-4 mt-2">
+                            <!-- <i class="fa fa-users text-warning me-1 mt-1" title="Member"/>Members : <br/> -->
+                            <field name="member_ids" widget="many2many_avatar_user" readonly="1"/>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+
+    <record id="action_survey_team" model="ir.actions.act_window">
+        <field name="name">Survey Team</field>
+        <field name="res_model">team.management</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('team_type','=','survey_team')]</field>
+        <field name="context">{'default_team_type':'survey_team'}</field>
+    </record>
+
+    <record id="action_installation_team" model="ir.actions.act_window">
+        <field name="name">Installation Team</field>
+        <field name="res_model">team.management</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('team_type','=','site_inspection_team')]</field>
+        <field name="context">{'default_team_type':'site_inspection_team'}</field>
+    </record>
+
+    <record id="action_qa_team" model="ir.actions.act_window">
+        <field name="name">Quality Assurance Team</field>
+        <field name="res_model">team.management</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('team_type','=','qa_team')]</field>
+        <field name="context">{'default_team_type':'qa_team'}</field>
+    </record>
+</odoo>

@@ -1,5 +1,5 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from lxml import etree   
 from markupsafe import Markup
 
@@ -31,6 +31,23 @@ class MultiApprovalType(models.Model):
     model_name = fields.Char(
         string='Model Name', related='model_id.model', store=True, readonly=True,
     )
+
+    @api.constrains('model_id', 'is_model')
+    def _check_unique_model(self):
+        """A given Model can only be linked to ONE Approval Type."""
+        for rec in self:
+            if rec.is_model and rec.model_id:
+                duplicate = self.search([
+                    ('id', '!=', rec.id),
+                    ('is_model', '=', True),
+                    ('model_id', '=', rec.model_id.id),
+                ], limit=1)
+                if duplicate:
+                    raise ValidationError(_(
+                        'An Approval Type ("%s") is already configured for the '
+                        'model "%s". Only one Approval Type is allowed per Model.'
+                    ) % (duplicate.name, rec.model_id.name))
+
 
     approver_ids = fields.One2many(
         'multi.approval.type.line', 'approval_type_id', string='Approvers'

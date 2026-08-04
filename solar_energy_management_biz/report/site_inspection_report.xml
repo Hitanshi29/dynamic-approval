@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of Bizople Solutions Pvt. Ltd. -->
+<!-- Licensed under the Bizople Proprietary License v1.0. -->
+<!-- Copyright (C) 2026 Bizople Solutions Pvt. Ltd. -->
+
+<odoo>
+
+    <template id="report_site_inspection_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+
+                    <div class="page">
+
+                        <h2 class="text-center">
+                            Site Inspection Report
+                        </h2>
+
+                        <table class="table table-sm table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th class="ps-3 fw-bold">Inspection No</th>
+                                    <td>
+                                        <span t-field="o.name"/>
+                                    </td>
+
+                                    <th class="ps-3 fw-bold">Status</th>
+                                    <td>
+                                        <span t-field="o.state"/> and <span t-field="o.approve_status"/>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <th class="ps-3 fw-bold">Customer</th>
+                                    <td>
+                                        <span t-field="o.customer_id"/>
+                                    </td>
+
+                                    <th class="ps-3 fw-bold">Lead</th>
+                                    <td>
+                                        <span t-field="o.lead_id"/>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <th class="ps-3 fw-bold">Quotation</th>
+                                    <td>
+                                        <span t-field="o.quotation_id"/>
+                                    </td>
+
+                                    <th class="ps-3 fw-bold">Visit Date</th>
+                                    <td>
+                                        <span t-field="o.visit_date"/>
+                                    </td>
+
+                                    <!-- <th>Engineer</th>
+                                    <td>
+                                        <span t-field="o.engineer_id"/>
+                                    </td> -->
+                                </tr>
+
+                                <!-- <tr>
+                                    <th>Scheduled Date</th>
+                                    <td>
+                                        <span t-field="o.schedule_date"/>
+                                    </td>
+
+                                    <th>Visit Date</th>
+                                    <td>
+                                        <span t-field="o.visit_date"/>
+                                    </td>
+                                </tr> -->
+                            </tbody>
+                        </table>
+
+                        <h2 class="text-center">Site Details</h2>
+
+                        <table class="table table-sm table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th width="30%" class="ps-3 fw-bold">Site Address</th>
+                                    <td>
+                                        <span t-field="o.site_address"/>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <th class="ps-3 fw-bold">Site Type</th>
+                                    <td>
+                                        <span t-field="o.site_type"/>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <th class="ps-3 fw-bold">Roof Type</th>
+                                    <td>
+                                        <span t-field="o.roof_type"/>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <th class="ps-3 fw-bold">Roof Area (Sq.ft)</th>
+                                    <td>
+                                        <span t-field="o.roof_area"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h2 class="text-center">Solar Requirement</h2>
+
+                        <table class="table table-sm table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th class="ps-3 fw-bold">Required Capacity (kW)</th>
+                                    <td>
+                                        <span t-field="o.required_capacity"/>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <th class="ps-3 fw-bold">Recommended Capacity (kW)</th>
+                                    <td>
+                                        <span t-field="o.recommended_capacity"/>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <th class="ps-3 fw-bold">Meter Type</th>
+                                    <td>
+                                        <span t-field="o.meter_type"/>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <th class="ps-3 fw-bold">Average Monthly Bill</th>
+                                    <td>
+                                        ₹ <span t-field="o.average_bill"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h2 class="text-center">Feasibility Assessment</h2>
+
+                        <table class="table table-sm table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th class="ps-3 fw-bold">Shading Present</th>
+                                    <td>
+                                        <t t-if="o.shading_present">Yes</t>
+                                        <t t-else="">No</t>
+                                    </td>
+                                </tr>
+
+                                <!-- <tr>
+                                    <th>Shading Details</th>
+                                    <td>
+                                        <span t-field="o.shading_details"/>
+                                    </td>
+                                </tr> -->
+
+                                <tr>
+                                    <th class="ps-3 fw-bold">Feasibility</th>
+                                    <td>
+                                        <span t-field="o.feasibility"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h2 class="text-center">Site Survey Images</h2>
+
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <t t-foreach="o.inspection_image_ids[:3]" t-as="img">
+                                        <td class="text-center">
+                                            <img t-att-src="image_data_uri(img.datas)"
+                                                width="180" height="150"/>
+                                            <div>
+                                                <span t-esc="img.name"/>
+                                            </div>
+                                        </td>
+                                    </t>
+                                </tr>
+
+                                <tr t-if="len(o.inspection_image_ids) > 3">
+                                    <t t-foreach="o.inspection_image_ids[3:6]" t-as="img">
+                                        <td class="text-center">
+                                            <img t-att-src="image_data_uri(img.datas)"
+                                                width="180" height="150"/>
+                                            <div>
+                                                <span t-esc="img.name"/>
+                                            </div>
+                                        </td>
+                                    </t>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- <div class="mt-3">
+                            <strong class="d-block text-center mb-3">Site Survey Images</strong> -->
+
+                            <!-- <div style="width:100%; text-align:left;">
+                                <t t-foreach="o.inspection_image_ids" t-as="img">
+                                    <div style="display:inline-block; width:30%; margin:1%; vertical-align:top; text-align:center;">
+                                        <img t-att-src="image_data_uri(img.datas)"
+                                            style="width:180px; height:150px; border:1px solid #ddd;"/>
+
+                                        <div style="margin-top:5px;">
+                                            <span t-esc="img.name"/>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div> -->
+                        <!-- </div> -->
+
+                        <!-- <br/>
+
+
+                        <div class="row mt32">
+                            <div class="col-6 text-center">
+                                <strong>Site Inspector Signature</strong>
+                                <br/><br/><br/>
+                                ____________________
+                            </div>
+
+                            <div class="col-6 text-center">
+                                <strong>Customer Signature</strong>
+                                <br/><br/><br/>
+                                ____________________
+                            </div>
+                        </div> -->
+
+                    </div>
+
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

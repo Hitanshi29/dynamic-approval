@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of Bizople Solutions Pvt. Ltd. -->
+<!-- Licensed under the Bizople Proprietary License v1.0. -->
+<!-- Copyright (C) 2026 Bizople Solutions Pvt. Ltd. -->
+
+<odoo>
+    <record model="ir.ui.view" id="site_inspection_id">
+        <field name="name">sale.order.view.form</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+
+            <!-- <xpath expr="//group[@name='order_details']" position="inside">
+                <field name="is_solar_project"/>
+            </xpath> -->
+            <xpath expr="//field[@name='order_line']" position="before">
+                <button name="action_expand_bom" type="object" string="Expand BOM" class="mx-1 oe_highlight" invisible="not has_bom_product"/>
+                <button name="action_refresh_bom" type="object" string="Refresh BOM" class="mx-1 oe_highlight" invisible="not has_bom_product"/>
+                <button name="action_hide_bom" type="object" string="Hide BOM" class="mx-1 oe_highlight" invisible="not has_bom_product"/>
+            </xpath>
+
+            <xpath expr="//field[@name='order_line']/list" position="attributes">
+                <attribute name="decoration-info">is_bom_component</attribute>
+            </xpath>
+
+            <!-- <xpath expr="//field[@name='order_line']/list/field[@name='product_id']" position="before">
+                <field name="is_hidden" column_invisible="1"/>
+            </xpath> -->
+            
+        </field>
+    </record>
+</odoo>

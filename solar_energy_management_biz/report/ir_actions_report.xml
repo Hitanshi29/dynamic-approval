@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of Bizople Solutions Pvt. Ltd. -->
+<!-- Licensed under the Bizople Proprietary License v1.0. -->
+<!-- Copyright (C) 2026 Bizople Solutions Pvt. Ltd. -->
+
+<odoo>
+
+    <record id="action_report_site_inspection" model="ir.actions.report">
+        <field name="name">Site Inspection Report</field>
+        <field name="model">site.inspection</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">solar_energy_management_biz.report_site_inspection_document</field>
+        <field name="report_file">solar_energy_management_biz.report_site_inspection_document</field>
+        <field name="binding_model_id" ref="model_site_inspection"/>
+        <field name="binding_type">report</field>
+    </record>
+
+</odoo>

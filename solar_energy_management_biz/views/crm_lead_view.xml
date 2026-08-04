@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of Bizople Solutions Pvt. Ltd. -->
+<!-- Licensed under the Bizople Proprietary License v1.0. -->
+<!-- Copyright (C) 2026 Bizople Solutions Pvt. Ltd. -->
+
+<odoo>
+    <record model="ir.ui.view" id="crm_lead_view_id">
+        <field name="name">crm.lead.view.form</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+
+            <!-- <xpath expr="//field[@name='tag_ids']" position="after">
+                <field name="customer_type"/>
+            </xpath> -->
+            <!-- <xpath expr="//notebook//page[@name='lead']" position="after">
+                <page name="soalr_requirment" string="Solar Requirment">
+                    <group>
+                        <group>
+                            <field name="required_capacity"/>
+                            <field name="monthly_electricity_bill"/>
+                            <field name="unit_cpnsumption"/>
+                            <field name="roof_type"/>
+                            <field name="roof_area"/>
+                        </group>
+                        <group>
+                            <field name="installation_location"/>
+                            <field name="battery_required"/>
+                            <field name="installation_date"/>
+                            <field name="grid_type"/>
+                        </group>
+                    </group>
+
+                </page>
+                
+            </xpath> -->
+
+            <xpath expr="//div[hasclass('oe_button_box')]" position="inside">
+                <button name="action_view_inspection" type="object" icon="fa-search" string="Site Inspection" invisible="type ==  'lead'">
+                    <field name="inspection_count" widget="statinfo" string="Inspections"/>
+                </button>
+            </xpath>
+
+            <xpath expr="//header" position="inside">
+                <button name="action_create_inspection" type="object" string="Site Inspection" class="oe_highlight" invisible="inspection_count > 0 or type == 'lead'"/>
+            </xpath>
+        </field>
+    </record>
+    
+</odoo>

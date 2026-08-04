@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of Bizople Solutions Pvt. Ltd. -->
+<!-- Licensed under the Bizople Proprietary License v1.0. -->
+<!-- Copyright (C) 2026 Bizople Solutions Pvt. Ltd. -->
+
+<odoo>
+    <data>
+        <record id="inspection_email_template" model="mail.template">
+            <field name="name">Site Inspection Approved</field>
+            <field name="model_id" ref="model_site_inspection"/>
+            <field name="subject">Site Inspection Approved</field>
+            <!-- <field name="email_to">{{ object.customer_id.email }}</field> -->
+            <field name="partner_to">{{ object.customer_id.id }}</field>
+            <field name="use_default_to" eval="True"/>
+            
+            <field name="body_html" type="html">
+                <div>
+                    <p>Dear <strong><t t-out="object.customer_id.name"/></strong>,</p>
+
+                    <t t-if="object.approve_status == 'approve'">
+
+                        <p>
+                            We would like to inform you that your site inspection has been approved at this time.
+                            <!-- We are pleased to inform you that the site inspection for
+                            <strong><t t-out="object.name"/></strong> has been <strong><t t-out="object.approve_status"/></strong>. -->
+                        </p>
+
+                        <p>
+                            The project will now proceed to the next stage of execution.
+                        </p>
+
+                        <p>
+                            Thank you for choosing <strong><t t-out="object.company_id.name"/></strong>.
+                        </p>
+                        
+                        <br/>
+
+                        <p>
+                            Regards,<br/>
+                            <strong><t t-out="object.company_id.name"/></strong>
+                        </p>
+                    </t>
+                    <t t-else="">
+                        <p>
+                            We would like to inform you that your site inspection has not been approved at this time.
+                        </p>
+
+                        <p>
+                            The project will not proceed to the next stage of execution.
+                        </p>
+
+                        <p>
+                            If you have any questions, please feel free to contact our team for assistance.
+                        </p>
+                        
+                        <br/>
+
+                        <p>
+                            Regards,<br/>
+                            <strong><t t-out="object.company_id.name"/></strong>
+                        </p>
+                    </t>
+                </div>
+                
+            </field>
+            <field name="report_template_ids" eval="[(4, ref('solar_energy_management_biz.action_report_site_inspection'))]"/>
+            
+            <field name="auto_delete" eval="True"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Part of Bizople Solutions Pvt. Ltd. -->
+<!-- Licensed under the Bizople Proprietary License v1.0. -->
+<!-- Copyright (C) 2026 Bizople Solutions Pvt. Ltd. -->
+
+<odoo>
+
+    <record id="view_project_info" model="ir.ui.view">
+        <field name="name">project.task.form</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='user_ids']" position="after">
+
+                <!-- <field name="check_type"/> -->
+                <!-- <field name="installation_team_id" invisible="intsallation_team_type != 'site_inspection_team'"/>
+                <field name="installation_leader_id" invisible="intsallation_team_type != 'site_inspection_team'"/>
+                <field name="installation_subcontractor_id"/> -->
+
+                <field name="installation_team_id"
+                    invisible="task_type != 'installation' or is_subcontract"/>
+
+                <field name="installation_leader_id"
+                    invisible="task_type != 'installation' or is_subcontract"/>
+
+                <field name="installation_subcontractor_id"
+                    invisible="task_type != 'installation' or not is_subcontract"/>
+
+                <!-- <field name="qa_team_id" invisible="qa_team_type != 'qa_team'"/>
+                <field name="qa_leader_id" invisible="qa_team_type != 'qa_team'"/>
+                <field name="qa_subcontractor_id" /> -->
+
+                <field name="qa_team_id"
+                    invisible="task_type != 'qa' or is_subcontract" />
+
+                <field name="qa_leader_id"
+                    invisible="task_type != 'qa' or is_subcontract"/>
+
+                <field name="qa_subcontractor_id"
+                    invisible="task_type != 'qa' or not is_subcontract"/>
+            </xpath>
+
+            <xpath expr="//notebook/page[@name='extra_info']" position="after">
+                <!-- <page name="Site Information" invisible="intsallation_team_type != 'site_inspection_team'"> -->
+                <page name="Site Information" invisible="task_type != 'installation'">
+                    <group>
+                        <field name="inspection_id"/>
+                        <group>
+                            <field name="site_address"/>
+                            <field name="site_type"/>
+                            <field name="roof_type"/>
+                            <!-- <field name="roof_area"/> -->
+                            <field name="required_capacity"/>
+                            <field name="recommended_capacity"/>
+                        </group>
+                        <group>
+                            <field name="meter_type"/>
+                            <field name="average_bill"/>
+                            <field name="shading_present"/>
+                            <!-- <field name="shading_details"/> -->
+                            <field name="feasibility"/>
+                        </group>
+                    </group>
+
+                </page>
+                <!-- <page name="QA" invisible="qa_team_type != 'qa_team'"> -->
+                <page name="QA" invisible="task_type != 'qa'">
+                    <group>
+                        <field name="checklist_template_ids" widget="many2many_tags"/>
+                    </group>
+                    <group>
+                        <field name="all_checklist_line_ids">
+                            <list create="0" delete="0" editable="bottom">
+                                <field name="checklist_name"/>
+                                <field name="is_approve"/>
+                            </list>
+                        </field>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_installation_tasks" model="ir.actions.act_window">
+        <field name="name">Installation Tasks</field>
+        <field name="res_model">project.task</field>
+        <field name="view_mode">kanban,list,form,calendar</field>
+        <field name="domain">[('task_type', '=', 'installation')]</field>
+        <field name="context">{'default_task_type': 'installation'}</field>
+    </record>
+
+    <record id="action_qa_tasks" model="ir.actions.act_window">
+        <field name="name">QA Tasks</field>
+        <field name="res_model">project.task</field>
+        <field name="view_mode">kanban,list,form,calendar</field>
+        <field name="domain">[('task_type', '=', 'qa')]</field>
+        <field name="context">{'default_task_type': 'qa'}</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of Bizople Solutions Pvt. Ltd. -->
+<!-- Licensed under the Bizople Proprietary License v1.0. -->
+<!-- Copyright (C) 2026 Bizople Solutions Pvt. Ltd. -->
+
+<odoo>
+
+    <menuitem id="solar_energy_management" name="Solar Energy Management" sequence="5"/>
+
+    <!-- <menuitem id="leads_menu" name="Leads" parent="solar_energy_management" action="crm.crm_lead_all_leads" sequence="1" groups="solar_energy_management_biz.group_solar_administrator"/> -->
+
+    <menuitem id="pipeline_menu" name="Pipeline" parent="solar_energy_management" action="crm.action_your_pipeline" sequence="2" groups="solar_energy_management_biz.group_solar_administrator"/>
+
+    <menuitem id="site_inspection_menu" name="Site Inspection" parent="solar_energy_management" action="action_inspection" sequence="3" groups="solar_energy_management_biz.group_solar_administrator,solar_energy_management_biz.group_solar_inspection_team"/>
+
+    <menuitem id="ren_order_menu" name="REN Order" parent="solar_energy_management" action="action_ren_order" sequence="4" groups="solar_energy_management_biz.group_solar_administrator"/>
+
+    <menuitem id="bill_material_menu" name="Bills of Materials" parent="solar_energy_management" action="mrp.mrp_bom_form_action" sequence="5" groups="solar_energy_management_biz.group_solar_administrator"/>
+
+    <!-- <menuitem id="project_menu" name="Projects" parent="solar_energy_management" action="project.open_view_project_all" sequence="6"/> -->
+
+    <menuitem id="project_alltask_menu" name="Tasks" parent="solar_energy_management" action="project.open_view_project_all" sequence="7" groups="solar_energy_management_biz.group_solar_administrator"/>
+    <menuitem id="project_task_menu" name="My Tasks" parent="project_alltask_menu" action="project.action_view_my_task" sequence="1"/>
+    <menuitem id="project_all_task_menu" name="All Tasks" parent="project_alltask_menu" action="project.action_view_all_task" sequence="2"/>
+
+    <!-- NEW: Installation Team's own filtered menu -->
+    <menuitem id="installation_tasks_menu" name="Installation Tasks" parent="solar_energy_management" action="action_installation_tasks" sequence="8" groups="solar_energy_management_biz.group_solar_installation_team"/>
+
+    <!-- NEW: QA Team's own filtered menu -->
+    <menuitem id="qa_tasks_menu" name="QA Tasks" parent="solar_energy_management" action="action_qa_tasks" sequence="9" groups="solar_energy_management_biz.group_solar_qa_team"/>
+
+
+    <!-- <menuitem id="team_menu" name="Teams" parent="solar_energy_management" sequence="9"/> -->
+    <!-- <menuitem id="survet_tam_menu" name="Survey Teams" parent="configuration_menu" action="action_survey_team" sequence="3"/>
+    <menuitem id="installation_team_menu" name="Installation Teams" parent="configuration_menu" action="action_installation_team" sequence="4"/>
+    <menuitem id="qa_tam_menu" name="QA Teams" parent="configuration_menu" action="action_qa_team" sequence="5"/> -->
+
+    <menuitem id="configuration_menu" name="Configuration" parent="solar_energy_management" sequence="10" groups="solar_energy_management_biz.group_solar_administrator"/>
+    <menuitem id="site_survey_check" name="Site Survey Checklist" parent="configuration_menu" action="action_survey_checklist" sequence="1"/>
+    <menuitem id="qa_checklist" name="Quality Assurance Checklist" parent="configuration_menu" action="action_qa_checklist" sequence="2"/>
+
+    <menuitem id="survet_tam_menu" name="Survey Teams" parent="configuration_menu" action="action_survey_team" sequence="3"/>
+    <menuitem id="installation_team_menu" name="Installation Teams" parent="configuration_menu" action="action_installation_team" sequence="4"/>
+    <menuitem id="qa_tam_menu" name="QA Teams" parent="configuration_menu" action="action_qa_team" sequence="5"/>
+
+
+</odoo>

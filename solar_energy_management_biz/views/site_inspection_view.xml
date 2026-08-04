@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Part of Bizople Solutions Pvt. Ltd. -->
+<!-- Licensed under the Bizople Proprietary License v1.0. -->
+<!-- Copyright (C) 2026 Bizople Solutions Pvt. Ltd. -->
+
+<odoo>
+
+    <record id="view_inspection_form" model="ir.ui.view">
+        <field name="name">site.inspection.form</field>
+        <field name="model">site.inspection</field>
+        <field name="arch" type="xml">
+            <form string="Site Inspection">
+                <header>
+                    <button string="Send Email" name="action_send_email" type="object" class="btn-primary" invisible="state != 'done' or approve_status not in ['approve','reject']"/>
+                    <!-- <button string="Generate Report" name="action_report_site_inspection" type="object" class="oe_highlight" invisible="state not in ['approve']"/> -->
+                    <button name="action_start_work" string="Start Work" type="object" class="oe_highlight" invisible="state in ['in_progress','done','approve','cancel','reject']" groups="solar_energy_management_biz.group_solar_administrator,solar_energy_management_biz.group_solar_inspection_team"/>
+                    <button name="action_set_to_draft" string="Set TO Draft" type="object" class="oe_highlight" invisible="state not in ['in_progress']" groups="solar_energy_management_biz.group_solar_administrator"/>
+                    <button name="action_complete_work" string="Complete" type="object" class="oe_highlight" invisible="state != 'in_progress'"/>
+
+                    <button name="approve_inspection" string="Approve" type="object" class="oe_highlight" invisible="state != 'done' or approve_status"/>
+                    <button name="reject_inspection" string="Reject" type="object" class="btn-danger" invisible="state != 'done' or approve_status"/>
+
+                    <button name="cancel_inspection" string="Cancel" type="object" class="btn-danger" invisible="state in ['draft','done','approve','reject','cancel']"/>
+
+                    
+                    <button string="Create REN Order" name="create_ren_order" type="object" class="oe_highlight" invisible="state != 'done' or approve_status != 'approve' or order_count > 0" groups="solar_energy_management_biz.group_solar_administrator"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,in_progress,done,cancel"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_ren_order" type="object" icon="fa-truck" string="REN Order" invisible="state != 'done' or approve_status not in ['approve']" groups="solar_energy_management_biz.group_solar_administrator">
+                            <field name="order_count" widget="statinfo" string="REN Order"/>
+                        </button>
+                    </div>
+                    <group>
+                        <field name="name"/>
+                    </group>
+                    <group string="Order Details">
+                        <group>
+                            <field name="lead_id"/>
+                            <field name="customer_id"/>
+                            <!-- <field name="schedule_date"/> -->
+                        </group>
+                        <group>
+                            <field name="quotation_id"/>
+                            <!-- <field name="engineer_id"/> -->
+                            <!-- <field name="visit_date"/> -->
+                        </group>
+                    </group>
+
+                    <widget name="web_ribbon" title="reject" bg_color="text-bg-danger" invisible="approve_status not in 'reject'"/>
+                    <widget name="web_ribbon" title="approve" bg_color="text-bg-success" invisible="approve_status not in 'approve'"/>
+                    
+                    <notebook>
+                        <page string="Survey Team Information">
+                            <group string="Survey Team Details">
+                                 <group>
+                                    <field name="team_id" readonly="state in ['in_progress','done','cancel']"/>
+                                    <field name="team_leader_id"/>
+                                    <field name="leader_email"/>
+                                </group>
+                                <group>
+                                    <field name="sales_id"/>
+                                    <!-- <field name="visit_date" readonly="state in ['done','cancel']"/> -->
+                                </group>
+                            </group>
+                            
+                        </page>
+                        <page string="Electricity Information" invisible = "state in 'draft'">
+                            <group string="Electricity Information">
+                                <group>
+                                    <field name="site_type" readonly="state in ['done','cancel']"/>
+                                    <field name="roof_type" readonly="state in ['done','cancel']"/>
+                                    <field name="roof_area" readonly="state in ['done','cancel']"/>
+                                    <field name="recommended_capacity" readonly="state in ['done','cancel']"/>
+                                    <field name="site_address" readonly="state in ['done','cancel']"/>
+                                </group>
+                                <group>
+                                    <field name="meter_type" readonly="state in ['done','cancel']"/>
+                                
+                                    <field name="average_bill" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="state in ['done','cancel']"/>
+                                    <field name="currency_id" invisible="1" readonly="state in ['done','cancel']"/>
+
+                                    <field name="shading_present" readonly="state in ['done','cancel']"/>
+                                    <field name="feasibility" readonly="state in ['done','cancel']"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Site Checklist" invisible = "state in 'draft'">
+                            <group>
+                                <field name="checklist_template_ids" widget="many2many_tags" required="state == 'in_progress'" readonly="state in ['done','cancel']"/>
+                            </group>
+                            <group>
+                                <field name="all_checklist_line_ids" readonly="state in ['done','cancel']">
+                                    <list create="0" delete="0" editable="bottom">
+                                        <field name="checklist_name"/>
+                                        <field name="is_approve"/>
+                                    </list>
+                                </field>
+                            </group>
+                        </page>
+                        <page name="site_images" string="Images" invisible = "state in 'draft'">
+                            <field name="inspection_image_ids" widget="many2many_binary" readonly="state in ['done','cancel']"/>
+                        </page>
+                </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_inspection_list" model="ir.ui.view">
+        <field name="name">site.inspection.list</field>
+        <field name="model">site.inspection</field>
+        <field name="arch" type="xml">
+            <list string="Site Inspection">
+                <field name="name"/>
+                <field name="lead_id"/>
+                <field name="customer_id"/>
+                <field name="quotation_id"/>
+                <field name="team_id"/>
+                <!-- <field name="engineer_id"/> -->
+                <!-- <field name="schedule_date"/> -->
+                <field name="visit_date"/>
+                <!-- <field name="state"/> -->
+                <field name="state_in_approve"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="kanban_view_site_inspection" model="ir.ui.view">
+        <field name="name">site.inspection.kanban</field>
+        <field name="model">site.inspection</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" quick_create="false"  records_draggable="false">
+                
+                <templates>
+                    <t t-name="menu">
+                        <t t-if="widget.editable"><a role="menuitem" type="open" class="dropdown-item">Edit</a></t>
+                        <t t-if="widget.deletable"><a role="menuitem" type="delete" class="dropdown-item">Delete</a></t>
+                        
+                    </t>
+                    <t t-name="card">
+                        <strong class="fs-3">
+                            <field name="name"/>
+                        </strong>
+                        <div class="d-flex fs-4">
+                            <i class="fa fa-star text-warning me-1 mt-1" title="lead"/><field name="lead_id"/><br/>
+                            <i class="fa fa-edit ms-auto text-warning me-1 mt-1" title="quotation"/><field name="quotation_id"/><br/>
+                            <i class="fa fa-users ms-auto text-warning me-1 mt-1" title="user"/><field name="team_id"/>
+                        </div>
+                    
+                        <div class="d-flex fs-4">
+                            <field name="customer_id" class="text-truncate" widget="many2one_avatar"/>
+                            <field name="customer_id" class="ms-2 text-truncate"/>
+                            <field name="sales_id" widget="many2one_avatar_user" domain="[('share', '=', False)]" class="ms-auto"/>
+                            <!-- <field class="ms-auto" name="activity_ids" widget="kanban_activity"/> -->
+                        </div>
+                        
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_inspection" model="ir.actions.act_window">
+        <field name="name">Site Inspection</field>
+        <field name="res_model">site.inspection</field>
+        <field name="view_mode">list,kanban,form</field>
+    </record>
+
+</odoo>

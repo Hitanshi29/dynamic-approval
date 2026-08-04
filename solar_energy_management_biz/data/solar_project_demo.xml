@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of Bizople Solutions Pvt. Ltd. -->
+<!-- Licensed under the Bizople Proprietary License v1.0. -->
+<!-- Copyright (C) 2026 Bizople Solutions Pvt. Ltd. -->
+
+<odoo>
+    <data noupdate="1">
+        <!-- <record id="product_product_installation" model="product.product">
+            <field name="name">Installation</field>
+            <field name="categ_id" ref="product.product_category_services"/>
+            <field name="list_price">1500.00</field>
+            <field name="standard_price">2000.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_hour"/>
+            <field name="service_tracking">task_in_project</field>
+
+        </record>
+
+        <record id="product_product_qa" model="product.product">
+            <field name="name">QA</field>
+            <field name="categ_id" ref="product.product_category_services"/>
+            <field name="list_price">1500.00</field>
+            <field name="standard_price">2000.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_hour"/>
+            <field name="service_tracking">task_in_project</field>
+        </record> -->
+
+        <record id="inspection_template_1" model="checklist.template">
+            <field name="name">Roof Assessment</field>
+            <field name="checklist_type">survey_template</field>
+            <field name="line_ids" eval="[
+                (0, 0, {'name': 'Roof Condition Verified'}),
+                (0, 0, {'name': 'Roof Dimensions Measured'}),
+                (0, 0, {'name': 'Available Installation Area Verified'}),
+                (0, 0, {'name': 'Roof Orientation Recorded'})
+            ]"/>
+        </record>
+
+
+        <record id="inspection_template_2" model="checklist.template">
+            <field name="name">Shadow Analysis</field>
+            <field name="checklist_type">survey_template</field>
+            <field name="line_ids" eval="[
+                (0, 0, {'name': 'Nearby building shadow checked'}),
+                (0, 0, {'name': 'Tree shadow checked'}),
+                (0, 0, {'name': 'Peak sunlight hours estimated'}),
+            ]"/>
+        </record>
+
+
+        <record id="inspection_template_3" model="checklist.template">
+            <field name="name">Electrical Assessment</field>
+            <field name="checklist_type">survey_template</field>
+            <field name="line_ids" eval="[
+                (0, 0, {'name': 'Main distribution board inspected'}),
+                (0, 0, {'name': 'Existing load verified'}),
+                (0, 0, {'name': 'Earthing availability checked'}),
+                (0, 0, {'name': 'Inverter installation location identified'})
+            ]"/>
+        </record>
+
+        <record id="inspection_template_4" model="checklist.template">
+            <field name="name">Cable Routing</field>
+            <field name="checklist_type">survey_template</field>
+            <field name="line_ids" eval="[
+                (0, 0, {'name': 'DC cable route identified'}),
+                (0, 0, {'name': 'AC cable route identified'}),
+                (0, 0, {'name': 'Cable tray requirement checked'}),
+            ]"/>
+        </record>
+
+
+        <record id="qa_template_1" model="checklist.template">
+            <field name="name">Installation Quality Check</field>
+            <field name="checklist_type">qa_template</field>
+            <field name="line_ids" eval="[
+                (0, 0, {'name': 'Panel alignment correct'}),
+                (0, 0, {'name': 'Mounting structure tightened'}),
+                (0, 0, {'name': 'No damaged modules'}),
+            ]"/>
+        </record>
+
+        <record id="qa_template_2" model="checklist.template">
+            <field name="name">Electrical Check</field>
+            <field name="checklist_type">qa_template</field>
+            <field name="line_ids" eval="[
+                (0, 0, {'name': 'DC wiring completed'}),
+                (0, 0, {'name': 'AC wiring completed'}),
+                (0, 0, {'name': 'Earthing connected'}),
+                (0, 0, {'name': 'MC4 connectors checked'}),
+            ]"/>
+        </record>
+
+        <record id="qa_template_3" model="checklist.template">
+            <field name="name">Safety Check</field>
+            <field name="checklist_type">qa_template</field>
+            <field name="line_ids" eval="[
+                (0, 0, {'name': 'Safety signage installed'}),
+                (0, 0, {'name': 'Lightning arrester installed'}),
+                (0, 0, {'name': 'PPE compliance verified'}),
+            ]"/>
+        </record>
+
+
+        <record id="qa_template_4" model="checklist.template">
+            <field name="name">Testing and Commissioning</field>
+            <field name="checklist_type">qa_template</field>
+            <field name="line_ids" eval="[
+                (0, 0, {'name': 'String voltage checked'}),
+                (0, 0, {'name': 'Inverter tested'}),
+                (0, 0, {'name': 'System generation verified'}),
+            ]"/>
+        </record>
+
+    </data>
+</odoo>

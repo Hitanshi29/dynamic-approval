@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Part of Bizople Solutions Pvt. Ltd. -->
+<!-- Licensed under the Bizople Proprietary License v1.0. -->
+<!-- Copyright (C) 2026 Bizople Solutions Pvt. Ltd. -->
+
+<odoo>
+
+    <record id="view_ren_order_form" model="ir.ui.view">
+        <field name="name">ren.order.form</field>
+        <field name="model">ren.order</field>
+        <field name="arch" type="xml">
+            <form string="REN Order">
+                <header>
+                    <button name="material_request" string="Material Request" type="object" class="oe_highlight" invisible="state not in ['new']"/>
+                    <button name="material_arrived" string="Material Arrived" type="object" class="oe_highlight" invisible="state not in ['material_order']"/>
+                    <button name="action_installation" string="Project Installation" type="object" class="oe_highlight" invisible="state not in ['material_arrived']"/>
+                    <button name="action_qa" string="QA" type="object" class="oe_highlight" invisible="state not in ['installation']"/>
+                    <button name="action_complete" string="Complete" type="object" class="oe_highlight" invisible="state not in ['qa']"/>
+                    <button name="action_cancel" string="Cancel" type="object" class="btn-danger" invisible="state in ['complete','cancel']"/>
+                    
+                    <button string="Warranty" type="object" class="oe_highlight" invisible="state not in ['complete']"/>
+
+                    <!-- <button string="Maintaince Request" type="object" class="oe_highlight" invisible="state not in ['complete']"/> -->
+                    <field name="state" widget="statusbar" statusbar_visible="new,material_order,material_arrived,installation,qa,complete,cancel"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+
+                        <button name="action_view_installation_tasks"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-wrench"
+                                invisible="state in ['new','material_order','material_arrived']">
+
+                            <field name="installation_task_count"
+                                widget="statinfo"
+                                string="Installation Tasks"/>
+
+                        </button>
+
+                        <button name="action_view_qa_tasks"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-check-circle"
+                                invisible="state in ['new','material_order','material_arrived','installation']">
+
+                            <field name="qa_task_count"
+                                widget="statinfo"
+                                string="QA Tasks"/>
+
+                        </button>
+
+                    </div>
+                    
+                    <field name="name"/>
+                    <group>
+                        <field name="lead_id"/>
+                    </group>
+                    <group>
+                        
+                        <group string="Customer Details">
+                            <field name="customer_id"/>
+                            <field name="email_from"/>
+                            <field name="phone_from"/>
+                        </group>
+
+                        <group string="Order Details">
+                            <field name="quotation_id"/>
+                            <field name="quotation_amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                            <field name="currency_id" invisible="1"/>
+                            <!-- <field name="order_date"/> -->
+                        </group>
+                    </group>
+
+                    <notebook>
+
+                        <page string="Site Details">
+                            <group>
+                                <group>
+                                    <field name="site_inspection_id"/>
+                                    <field name="site_address"/>
+                                    <field name="site_type"/>
+                                    <field name="roof_type"/>
+                                    <!-- <field name="roof_area"/> -->
+                                    <field name="required_capacity"/>
+                                    <field name="recommended_capacity"/>
+                                </group>
+                                <group>
+                                    <field name="meter_type"/>
+                                    <field name="average_bill"/>
+                                    <field name="shading_present"/>
+                                    <!-- <field name="shading_details"/> -->
+                                    <field name="feasibility"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Material Of Project" invisible="state in ['new']">
+                        <!-- <page string="Material Of Project"> -->
+                            <group string="Bill Of Material Details">
+                                <field name="bom_ids" widget="many2many_tags" required="state == 'material_order'" readonly="state not in ['material_order']"/>
+                            </group>
+                            <group string="Bill Of Components">
+                                <field name="bom_product_ids" readonly="state not in ['material_order']">
+                                    <list editable="bottom">
+                                        <field name="product_id"/>
+                                        <field name="product_qty"/>
+                                        <field name="product_uom_id"/>
+                                        <!-- <field name="available_qty"/> -->
+                                        <field name="availability"
+                                            widget="badge"
+                                            decoration-success="availability == 'available'"
+                                            decoration-danger="availability == 'not_available'"/>
+                                    </list>
+                                </field>
+                            </group>
+                            <!-- <group>
+                                <group string="Purchase Order Details">
+                                    <field name="is_purchase_order"/>
+                                    <field name="vendor_id" invisible="not is_purchase_order"/>
+                                    <button string="Create Purchase Order" class="oe_highlight" type="object" invisible="not is_purchase_order"/>
+                                </group>
+                            </group> -->
+                        </page>
+                        <page string="Project Installation" invisible="state in ['new','material_order','material_arrived']">
+                            <group string="Project Installation Details">
+                                <field name="installation_type" widget="radio" readonly="state not in ['installation']"/>
+                            </group>
+                            <group>
+                                <group string="Project Internal Team" invisible="installation_type != 'internal_team'">
+                                    <field name="installation_team_id" domain="[('team_type','=','site_inspection_team')]" readonly="state not in ['installation']"/>
+                                    <field name="installation_leader_id"/>
+                                    <field name="installation_leader_email"/>
+                                    <button name="action_create_installation_task" string="Create Installation Task" type="object" class="oe_highlight" invisible="state not in 'installation'"/>
+                                </group>
+                                <group invisible="installation_type != 'sub_contract'">
+                                    <button name="action_subcontract_installation_task" string="Create Sub Contract" type="object" class="oe_highlight" invisible="state not in 'installation'"/>
+                                </group>
+                                <group string="Date Of Installlation">
+                                    <field name="installation_subcontractor_id" invisible="installation_type != 'sub_contract'" readonly="state not in ['installation']"/>
+                                    <field name="installation_start_date" readonly="state not in ['installation']"/>
+                                    <field name="installation_end_date" readonly="state not in ['installation']"/>
+                                    <field name="installation_allocate_time" widget="float_time" readonly="state not in ['installation']"/>
+                                </group>
+                            </group>
+                        
+                        </page>
+                        <page string="QA Inspection Team" invisible="state in ['new','material_order','material_arrived','installation']">
+                            <group string="Project QA Details">
+                                <field name="qa_type" widget="radio" readonly="state not in ['qa']"/>
+                            </group>
+                            <group>
+                                <group string="Project Internal Team" invisible="qa_type != 'internal_team'">
+                                    <field name="qa_team_id" domain="[('team_type','=','qa_team')]" readonly="state not in ['qa']"/>
+                                    <field name="qa_leader_id"/>
+                                    <field name="qa_leader_email"/>
+                                    <button name="action_create_qa_task" string="Create QA Task" type="object" class="oe_highlight" invisible="state not in 'qa'"/>
+                                </group>
+                                <group invisible="qa_type != 'sub_contract'">
+                                    <button name="action_subcontract_qa_task" string="Create Sub Contract" type="object" class="oe_highlight" invisible="state not in 'qa'"/>
+                                </group>
+                                <group string="Date Of QA">
+                                    <field name="qa_subcontractor_id" invisible="qa_type != 'sub_contract'" readonly="state not in ['qa']"/>
+                                    <field name="qa_start_date" readonly="state not in ['qa']"/>
+                                    <field name="qa_end_date" readonly="state not in ['qa']"/>
+                                    <field name="qa_allocate_time" widget="float_time" readonly="state not in ['qa']"/>
+                                </group>
+                            </group>
+                        </page>
+
+                    </notebook>
+                    
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_ren_order_list" model="ir.ui.view">
+        <field name="name">ren.order.list</field>
+        <field name="model">ren.order</field>
+        <field name="arch" type="xml">
+            <list string="REN Order">
+                <field name="name"/>
+                <field name="lead_id"/>
+                <field name="customer_id"/>
+                <field name="site_inspection_id"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="kanban_view_ren_order" model="ir.ui.view">
+        <field name="name">ren.order.kanban</field>
+        <field name="model">ren.order</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" quick_create="false"  records_draggable="false">
+                
+                <templates>
+                    <t t-name="menu">
+                        <t t-if="widget.editable"><a role="menuitem" type="open" class="dropdown-item">Edit</a></t>
+                        <t t-if="widget.deletable"><a role="menuitem" type="delete" class="dropdown-item">Delete</a></t>
+                        
+                    </t>
+                    <t t-name="card">
+                        <strong class="fs-3">
+                            <field name="name"/>
+                        </strong>
+                        <div class="d-flex fs-4">
+                            <i class="fa fa-star text-warning me-1 mt-1" title="lead"/><field name="lead_id"/>
+                            <i class="fa fa-edit ms-auto text-warning me-1 mt-1" title="quotation"/><field name="quotation_id"/>
+                        </div>
+                        <div class="d-flex fs-4">
+                            <field name="customer_id" class="text-truncate" widget="many2one_avatar"/>
+                            <field name="customer_id" class="ms-2 text-truncate"/>
+                            <field class="ms-auto" name="activity_ids" widget="kanban_activity"/>
+                        </div>
+                        
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- <record id="view_ren_order_search" model="ir.ui.view">
+        <field name="name">ren.order.search</field>
+        <field name="model">ren.order</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="customer_id"/>
+
+                <separator/>
+
+                <filter string="New"
+                        name="new"
+                        domain="[('state','=','new')]"/>
+
+                <filter string="Material Order"
+                        name="material_order"
+                        domain="[('state','=','material_order')]"/>
+                
+                <filter string="Material Arrived"
+                        name="material_arrived"
+                        domain="[('state','=','material_arrived')]"/>
+
+                <filter string="Installation"
+                        name="installation"
+                        domain="[('state','=','installation')]"/>
+
+                <filter string="QA"
+                        name="qa"
+                        domain="[('state','=','qa')]"/>
+
+                <filter string="Complete"
+                        name="complete"
+                        domain="[('state','=','complete')]"/>
+
+                <group expand="0" string="Group By">
+                    <filter string="State"
+                            name="group_state"
+                            context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record> -->
+
+    <record id="action_ren_order" model="ir.actions.act_window">
+        <field name="name">REN Order</field>
+        <field name="res_model">ren.order</field>
+        <field name="view_mode">list,kanban,form</field>
+        <!-- <field name="search_view_id" ref="view_ren_order_search"/> -->
+    </record>
+</odoo>

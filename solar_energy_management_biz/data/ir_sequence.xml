@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of Bizople Solutions Pvt. Ltd. -->
+<!-- Licensed under the Bizople Proprietary License v1.0. -->
+<!-- Copyright (C) 2026 Bizople Solutions Pvt. Ltd. -->
+
+<odoo>
+    <record id="seq_solar_site_inspection" model="ir.sequence">
+        <field name="name">Solar Site Inspection</field>
+        <field name="code">site.inspection</field>
+        <field name="prefix">INS</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <record id="seq_ren_order" model="ir.sequence">
+        <field name="name">REN Order</field>
+        <field name="code">ren.order</field>
+        <field name="prefix">REN</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <record id="seq_survey_team" model="ir.sequence">
+        <field name="name">Survey Team</field>
+        <field name="code">survey.team</field>
+        <field name="prefix">SUR/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <record id="seq_installation_team" model="ir.sequence">
+        <field name="name">Installation Team</field>
+        <field name="code">installation.team</field>
+        <field name="prefix">INS/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+    <record id="seq_qa_team" model="ir.sequence">
+        <field name="name">QA Team</field>
+        <field name="code">qa.team</field>
+        <field name="prefix">QA/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+</odoo>

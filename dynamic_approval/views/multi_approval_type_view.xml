@@ -65,7 +65,9 @@
                             </group>
 
                             <group string="Model Setting" invisible="not is_model"> 
-                                <field name="model_id" invisible="not is_model" readonly="is_configured"/>
+                                <!-- <field name="model_id" invisible="not is_model" readonly="is_configured"/> -->
+                                <field name="model_id" invisible="not is_model" readonly="is_configured"  options="{'no_create': True, 'no_create_edit': True}"/>
+                                
                                 <field name="model_name" invisible="1"/>
 
                                 <field name="domain"
