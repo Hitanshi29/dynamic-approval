@@ -176,36 +176,39 @@ class ApprovalRequest(models.Model):
         approval_type = self.env['multi.approval.type'].browse(type_id)
         record = self.env[res_model].browse(res_id)
 
-        # if approval_type.domain and approval_type.domain != '[]':
-        #     domain = safe_eval(approval_type.domain)
-
-        #     _logger.info(">>>>>>>>>>>>>>>>>>>>>>Approval Domain: %s", domain)
-        #     _logger.info(
-        #         ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>Matched Records: %s",
-        #         self.env[res_model].search(domain).ids
-        #     )
-        #     if not self.env[res_model].search_count(domain + [('id', '=', res_id)]):
-        #         raise UserError(_('This record does not currently meet the approval conditions.'))
         if approval_type.domain and approval_type.domain != '[]':
             domain = safe_eval(approval_type.domain)
-
             final_domain = Domain.AND([
                 [('id', '=', res_id)],
                 domain,
             ])
-
-            _logger.info(">>>>>>>>>>Current Record ID: %s", res_id)
-            _logger.info(">>>>>>>>>>>>>>>>Original Domain: %s", domain)
-            _logger.info(">>>>>>>>>>>>>>>Final Domain: %s", final_domain)
-            _logger.info(
-                ">>>>>>>>>>>>>>>>>>>>>>Matched Record IDs: %s",
-                self.env[res_model].search(final_domain).ids
-            )
-
             if not self.env[res_model].search_count(final_domain):
                 raise UserError(
                     _('This record does not currently meet the approval conditions.')
                 )
+
+        # NEW: if this exact document was previously REFUSED under this same
+        # Approval Type, reopen that request and resume from the step that
+        # refused it — don't restart the whole chain from approver 1.
+        previous = self.search([
+            ('res_model', '=', res_model),
+            ('res_id', '=', res_id),
+            ('type_id', '=', type_id),
+            ('state', '=', 'cancel'),
+        ], order='id desc', limit=1)
+
+        if previous:
+            previous._resume_after_refusal()
+            quick_view = self.env.ref('dynamic_approval.view_approval_request_quick_form')
+            return {
+                'type': 'ir.actions.act_window',
+                'name': _('Request Approval'),
+                'res_model': 'approval.request',
+                'view_mode': 'form',
+                'views': [(quick_view.id, 'form')],
+                'res_id': previous.id,
+                'target': 'new',
+            }
 
         # pick the approver to default in: prefer the first "Mandatory"
         # line, fall back to the first line of any kind, else none.
@@ -214,9 +217,7 @@ class ApprovalRequest(models.Model):
         )[:1] or approval_type.approver_ids.filtered(lambda l: l.user_id)[:1]
         default_approver = approver_line.user_id.id if approver_line else False
 
-
         default_description = approval_type._render_description(record)
-
         record_amount = getattr(record, 'amount_total', 0.0) or 0.0
 
         quick_view = self.env.ref('dynamic_approval.view_approval_request_quick_form')
@@ -365,6 +366,30 @@ class ApprovalRequest(models.Model):
         self.env['approval.request.line'].create(vals_list)
         self.approver_id = applicable[0].user_id.id
 
+    def _resume_after_refusal(self):
+        """Bring a REFUSED request back to draft, but keep every step that
+        was already approved before the refusal. Only the step that refused
+        it (and any steps after it) get asked for again."""
+        self.ensure_one()
+
+        cancelled_line = self.line_ids.filtered(lambda l: l.state == 'cancel').sorted('sequence')[:1]
+
+        if not cancelled_line:
+            # No per-line info (legacy single-approver flow) — full reset.
+            self.line_ids.unlink()
+            self._build_approval_lines()
+        else:
+            redo_lines = self.line_ids.filtered(lambda l: l.sequence >= cancelled_line.sequence)
+            redo_lines[0].write({'state': 'to_approve', 'approved_date': False})
+            (redo_lines - redo_lines[0]).write({'state': 'waiting', 'approved_date': False})
+            self.approver_id = redo_lines[0].user_id.id
+
+        self.state = 'draft'
+        self._set_dynamic_flag(False)
+        self.message_post(
+            body=_('Request reopened after refusal — resuming with %s.') % self.approver_id.name
+        )
+
     @api.onchange('type_id', 'record_amount', 'amount')
     def _onchange_preview_approver_lines(self):
         for rec in self:
@@ -403,10 +428,22 @@ class ApprovalRequest(models.Model):
             if not rec.approver_id:
                 raise UserError(_('Please select an Approver before submitting.'))
             rec._check_dynamic_required_fields()
-            rec._build_approval_lines()
+
+            already_approved = rec.line_ids.filtered(lambda l: l.state == 'approved')
+            if already_approved:
+                # Resumed request — keep approved steps, just make sure the
+                # first not-yet-approved step is the active one.
+                pending = rec.line_ids.filtered(lambda l: l.state != 'approved').sorted('sequence')
+                if pending:
+                    pending[0].state = 'to_approve'
+                    (pending - pending[0]).write({'state': 'waiting'})
+                    rec.approver_id = pending[0].user_id.id
+            else:
+                rec._build_approval_lines()
+
             rec.state = 'submitted'
             rec.message_post(body=_('Approval created'))
-            rec._set_dynamic_flag('submitted') 
+            rec._set_dynamic_flag('submitted')
             rec._send_status_mail('mail_template_approval_step_assigned')
             rec._post_message_on_source_record(
                 _('Approval requested — "%s" (waiting on %s).') % (rec.type_id.name, rec.approver_id.name)
@@ -430,11 +467,23 @@ class ApprovalRequest(models.Model):
                 if next_line:
                     next_line.state = 'to_approve'
                     rec.approver_id = next_line.user_id.id
-                    rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)
+                    # Notify the NEXT approver it's their turn — same template used on
+                    # first submit, defaults to rec.approver_id which is now next_line's user.
+                    rec._send_status_mail('mail_template_approval_step_assigned')
                     rec._post_message_on_source_record(
                         _('%s -> %s(Approver)') % (active_line.user_id.name, next_line.user_id.name)
                     )
-                    continue  
+                    continue
+
+                # next_line = rec.line_ids.filtered(lambda l: l.state == 'waiting')[:1]
+                # if next_line:
+                #     next_line.state = 'to_approve'
+                #     rec.approver_id = next_line.user_id.id
+                #     rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)
+                #     rec._post_message_on_source_record(
+                #         _('%s -> %s(Approver)') % (active_line.user_id.name, next_line.user_id.name)
+                #     )
+                #     continue  
 
                 rec.state = 'approved'
                 rec._run_type_action('approved_action')
@@ -532,20 +581,38 @@ class ApprovalRequest(models.Model):
         recipient_user = recipient_user or self.approver_id
 
         if recipient_user.email:
-            template.send_mail(
-                self.id,
-                force_send=True,
-                email_values={'email_to': recipient_user.email},
-            )
-        else:
-            subject = template._render_field('subject', self.ids)[self.id]
-            body = template._render_field('body_html', self.ids)[self.id]
-            self.message_post(
-                body=body,
-                subject=subject,
-                subtype_xmlid='mail.mt_comment',
-                partner_ids=recipient_user.partner_id.ids,
-            )
+            try:
+                template.send_mail(
+                    self.id,
+                    force_send=True,
+                    email_values={
+                        'email_to': recipient_user.email,
+                        # Keep the mail (and its linked chatter message) around
+                        # after sending. The template's default auto_delete=True
+                        # was wiping the chatter entry right after a successful
+                        # send — that's why the mail reached Gmail but the
+                        # chatter stayed empty.
+                        'auto_delete': False,
+                    },
+                )
+                return
+            except Exception:
+                _logger.exception(
+                    'send_mail failed for template %s on %s — falling back to a chatter note.',
+                    template_xmlid, self.name
+                )
+
+        # No email on the recipient, OR send_mail() above failed for any
+        # reason — always leave a visible trace in the chatter either way.
+        subject = template._render_field('subject', self.ids)[self.id]
+        body = template._render_field('body_html', self.ids)[self.id]
+        self.message_post(
+            body=body,
+            subject=subject,
+            subtype_xmlid='mail.mt_comment',
+            partner_ids=recipient_user.partner_id.ids,
+        )
+        if not recipient_user.email:
             _logger.warning(
                 'Recipient %s has no email set; status mail (%s) not sent for %s',
                 recipient_user.name, template_xmlid, self.name
