@@ -217,34 +217,6 @@ class MultiApprovalType(models.Model):
                 ),
             })
 
-    # def _domain_fields_and_expr(self, domain_str):
-    #     """Turns a simple AND-only domain like [('state','=','draft')] into
-    #     a boolean expression the view can evaluate live in the browser
-    #     (e.g. state == 'draft'), plus the field names it needs declared in
-    #     the arch. Anything more complex (OR, nested domains) safely falls
-    #     back to 'always eligible' here — the real check still happens
-    #     server-side in _open_request_wizard, so nothing is bypassed."""
-    #     import ast
-    #     try:
-    #         domain = ast.literal_eval(domain_str or '[]')
-    #     except Exception:
-    #         return [], 'True'
-    #     if not domain:
-    #         return [], 'True'
-
-    #     ops = {'=': '==', '!=': '!=', 'in': 'in', 'not in': 'not in',
-    #            '>': '>', '<': '<', '>=': '>=', '<=': '<='}
-    #     fields_used, parts = [], []
-    #     for leaf in domain:
-    #         if not (isinstance(leaf, (list, tuple)) and len(leaf) == 3):
-    #             return [], 'True'
-    #         field, op, value = leaf
-    #         if op not in ops:
-    #             return [], 'True'
-    #         fields_used.append(field)
-    #         parts.append("%s %s %r" % (field, ops[op], value))
-    #     return fields_used, ' and '.join(parts)
-
     def _domain_fields_and_expr(self, domain_str):
         """Convert an Odoo domain into a JS/view expression.
 
@@ -299,7 +271,6 @@ class MultiApprovalType(models.Model):
 
         tokens = list(domain)
 
-        # Prefix notation (&,|,!)
         if tokens and tokens[0] in ("&", "|", "!"):
             expr = parse(tokens)
         else:
@@ -334,7 +305,6 @@ class MultiApprovalType(models.Model):
 
         data = etree.Element('data')
 
-        # --- Request Approval / View Approval buttons + marker fields ---
         header_xpath = etree.SubElement(data, 'xpath')
         header_xpath.set('expr', "//form/header")
         header_xpath.set('position', 'inside')
@@ -354,7 +324,6 @@ class MultiApprovalType(models.Model):
         req_btn.set('string', 'Request Approval')
         req_btn.set('class', 'oe_highlight')
         req_btn.set('invisible', "%s in ('submitted', 'approved', 'rejected', 'resolved') or not (%s)" % (DYNAMIC_FIELD_NAME, eligible_expr))
-        # req_btn.set('invisible', "%s in ('submitted', 'approved', 'rejected') or not (%s)" % (DYNAMIC_FIELD_NAME, eligible_expr))
         req_btn.set('context', "{'approval_type_id': %d}" % self.id)
 
         view_btn = etree.SubElement(header_xpath, 'button')
@@ -385,7 +354,7 @@ class MultiApprovalType(models.Model):
 
             header_node = arch_root.find('.//header') if arch_root is not None else None
             if header_node is not None:
-                seen_positions = {}  # name -> occurrence count, to build unique xpaths
+                seen_positions = {} 
                 for btn in header_node.findall('button'):
                     name = btn.get('name')
                     if not name or name in (req_name, view_name):
@@ -428,13 +397,9 @@ class MultiApprovalType(models.Model):
                     attr.text = combined
 
                     if states_attr:
-                        # Neutralize the legacy states attribute so it can no
-                        # longer force the button visible on its own.
                         attr2 = etree.SubElement(btn_xpath, 'attribute')
                         attr2.set('name', 'states')
-                        # leave empty text -> removes the attribute's effect
-
-        # --- "Waiting Approval" banner ---
+                       
         sheet_xpath = etree.SubElement(data, 'xpath')
         sheet_xpath.set('expr', "//form/sheet")
         sheet_xpath.set('position', 'before')
@@ -445,7 +410,6 @@ class MultiApprovalType(models.Model):
         banner.set('invisible', "%s != 'submitted'" % DYNAMIC_FIELD_NAME)
         banner.text = 'Waiting Approval'
 
-        # --- "Approval Rejected" banner ---
         reject_xpath = etree.SubElement(data, 'xpath')
         reject_xpath.set('expr', "//form/sheet")
         reject_xpath.set('position', 'before')

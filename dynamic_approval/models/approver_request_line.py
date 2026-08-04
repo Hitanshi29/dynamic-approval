@@ -31,19 +31,3 @@ class ApprovalRequestItemLine(models.Model):
     name = fields.Char(string='Item', required=True)
     quantity = fields.Float(string='Quantity', default=1.0)
     amount = fields.Float(string='Amount')
-
-    # Using product module
-    
-    # request_id = fields.Many2one(
-    #         'approval.request', string='Request', required=True, ondelete='cascade')
-    # product_id = fields.Many2one('product.product', string='Product')
-    # name = fields.Char(string='Item', required=True)
-    # quantity = fields.Float(string='Quantity', default=1.0)
-    # amount = fields.Float(string='Amount')
-
-    # @api.onchange('product_id')
-    # def _onchange_product_id(self):
-    #     for rec in self:
-    #         if rec.product_id:
-    #             rec.name = rec.product_id.display_name
-    #             rec.amount = rec.product_id.list_price

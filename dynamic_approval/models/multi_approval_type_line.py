@@ -23,7 +23,6 @@ class MultiApproveTypeLine(models.Model):
         ]
     )
 
-    # group_ids = fields.Many2many('res.groups', string='Deputy Groups')
     approval_kind = fields.Selection(
         APPROVAL_KIND, string='Type of Approval', default='mandatory'
     )

@@ -33,7 +33,6 @@ class Base(models.AbstractModel):
 
         record_amount = getattr(self, "amount_total", 0.0) or 0.0
 
-        # approvers who actually need approval
         applicable_approvers = approval_type.approver_ids.filtered(
             lambda l: record_amount >= l.minimum_amount
         )

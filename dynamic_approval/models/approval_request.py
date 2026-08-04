@@ -187,9 +187,6 @@ class ApprovalRequest(models.Model):
                     _('This record does not currently meet the approval conditions.')
                 )
 
-        # NEW: if this exact document was previously REFUSED under this same
-        # Approval Type, reopen that request and resume from the step that
-        # refused it — don't restart the whole chain from approver 1.
         previous = self.search([
             ('res_model', '=', res_model),
             ('res_id', '=', res_id),
@@ -210,8 +207,6 @@ class ApprovalRequest(models.Model):
                 'target': 'new',
             }
 
-        # pick the approver to default in: prefer the first "Mandatory"
-        # line, fall back to the first line of any kind, else none.
         approver_line = approval_type.approver_ids.filtered(
             lambda l: l.approval_kind == 'mandatory' and l.user_id
         )[:1] or approval_type.approver_ids.filtered(lambda l: l.user_id)[:1]
@@ -255,10 +250,6 @@ class ApprovalRequest(models.Model):
             'target': 'current',
         }
 
-    # ---------------------------------------------------------------
-    # NEW — flips the marker field on the target record, and runs the
-    # stored Approved/Refused Action code from the Approval Type.
-    # ---------------------------------------------------------------
     def _set_dynamic_flag(self, value):
         self.ensure_one()
         if not (self.res_model and self.res_id):
@@ -274,9 +265,6 @@ class ApprovalRequest(models.Model):
         if not code or not (self.res_model and self.res_id):
             return
 
-        # Require at least base access to the module (blocks "No" access),
-        # but don't check record rules here — an approver shouldn't be
-        # blocked just because the document isn't "their own".
         if not self.env['ir.model.access'].check(self.res_model, 'write', raise_exception=False):
             raise UserError(_(
                 "You don't have access to this module, so you can't approve or cancel this request."
@@ -290,9 +278,6 @@ class ApprovalRequest(models.Model):
         except Exception as e:
             raise UserError(_('The configured action for "%s" failed: %s') % (self.type_id.name, e))
 
-    # ---------------------------------------------------------------
-    # Workflow actions (CHANGED: action_submit / action_approve / action_refuse)
-    # ---------------------------------------------------------------
     def _check_dynamic_required_fields(self):
         """Server-side mirror of the view's required= domains, so a
         'Required' Fields Setting on the Approval Type can't be bypassed
@@ -322,15 +307,6 @@ class ApprovalRequest(models.Model):
             raise UserError(_('Please fill in the required field(s): %s') % ', '.join(missing))
 
 
-    # def _get_applicable_approver_tiers(self):
-    #     self.ensure_one()
-    #     type_lines = self.type_id.approver_ids.filtered(lambda l: l.user_id)
-    #     if not type_lines:
-    #         return type_lines
-    #     amount = self.record_amount or self.amount or 0.0
-    #     return type_lines.filtered(
-    #         lambda l: amount >= (l.minimum_amount or 0.0)
-    #     ).sorted(key=lambda l: l.minimum_amount or 0.0)
     def _get_applicable_approver_tiers(self):
         self.ensure_one()
         type_lines = self.type_id.approver_ids.filtered(lambda l: l.user_id)
@@ -431,8 +407,6 @@ class ApprovalRequest(models.Model):
 
             already_approved = rec.line_ids.filtered(lambda l: l.state == 'approved')
             if already_approved:
-                # Resumed request — keep approved steps, just make sure the
-                # first not-yet-approved step is the active one.
                 pending = rec.line_ids.filtered(lambda l: l.state != 'approved').sorted('sequence')
                 if pending:
                     pending[0].state = 'to_approve'
@@ -467,23 +441,11 @@ class ApprovalRequest(models.Model):
                 if next_line:
                     next_line.state = 'to_approve'
                     rec.approver_id = next_line.user_id.id
-                    # Notify the NEXT approver it's their turn — same template used on
-                    # first submit, defaults to rec.approver_id which is now next_line's user.
                     rec._send_status_mail('mail_template_approval_step_assigned')
                     rec._post_message_on_source_record(
                         _('%s -> %s(Approver)') % (active_line.user_id.name, next_line.user_id.name)
                     )
                     continue
-
-                # next_line = rec.line_ids.filtered(lambda l: l.state == 'waiting')[:1]
-                # if next_line:
-                #     next_line.state = 'to_approve'
-                #     rec.approver_id = next_line.user_id.id
-                #     rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)
-                #     rec._post_message_on_source_record(
-                #         _('%s -> %s(Approver)') % (active_line.user_id.name, next_line.user_id.name)
-                #     )
-                #     continue  
 
                 rec.state = 'approved'
                 rec._run_type_action('approved_action')
@@ -494,7 +456,6 @@ class ApprovalRequest(models.Model):
                 )
                 continue
 
-            # --- legacy: only reached if the Approval Type has NO approver lines at all ---
             if rec.approver_id.id != self.env.uid:
                 raise UserError(_('Only the assigned approver can approve this request.'))
             rec.state = 'approved'
@@ -519,7 +480,6 @@ class ApprovalRequest(models.Model):
                 rec._set_dynamic_flag('rejected')
                 rec._send_status_mail('mail_template_approval_refused', recipient_user=rec.request_by)
                 rec.message_post(body=_('Step "%s" cancel by %s.') % (active_line.title, active_line.user_id.name))
-                # NEW: note on the source record (PO) — this branch is the one that actually runs
                 rec._post_message_on_source_record(
                     _('Approval "%s" was cancel at step "%s" by %s.') % (
                         rec.type_id.name, active_line.title, active_line.user_id.name
@@ -527,7 +487,6 @@ class ApprovalRequest(models.Model):
                 )
                 continue
 
-            # --- legacy single-approver flow (only if no approver lines exist) ---
             if rec.approver_id.id != self.env.uid:
                 raise UserError(_('Only the assigned approver can cancel this request.'))
             rec.state = 'cancel'
@@ -535,7 +494,6 @@ class ApprovalRequest(models.Model):
             rec._set_dynamic_flag('rejected')
             rec._send_status_mail('mail_template_approval_refused', recipient_user=rec.request_by)
             rec.message_post(body=_('Request cancel by %s.') % rec.approver_id.name)
-            # NEW: note on the source record (PO)
             rec._post_message_on_source_record(
                 _('Approval "%s" was cancel by %s.') % (rec.type_id.name, rec.approver_id.name)
             )
@@ -543,18 +501,6 @@ class ApprovalRequest(models.Model):
     def action_draft(self):
         for rec in self:
             rec.state = 'draft'
-
-    # def action_change_approver(self):
-    #     """Opens the Change Approver wizard (New Approver + Reason)."""
-    #     self.ensure_one()
-    #     return {
-    #         'name': _('Change Approver'),
-    #         'type': 'ir.actions.act_window',
-    #         'res_model': 'approval.change.user.wizard',
-    #         'view_mode': 'form',
-    #         'target': 'new',
-    #         'context': {'default_request_id': self.id},
-    #     }
 
     def action_attach_document(self, attachment_ids):
         self.ensure_one()
@@ -587,11 +533,8 @@ class ApprovalRequest(models.Model):
                     force_send=True,
                     email_values={
                         'email_to': recipient_user.email,
-                        # Keep the mail (and its linked chatter message) around
-                        # after sending. The template's default auto_delete=True
-                        # was wiping the chatter entry right after a successful
-                        # send — that's why the mail reached Gmail but the
-                        # chatter stayed empty.
+                        # 'email_from': self.env.company.email or self.env.user.email,
+                        # 'email_from': 'drashti.patel165@gmail.com',
                         'auto_delete': False,
                     },
                 )
@@ -602,8 +545,6 @@ class ApprovalRequest(models.Model):
                     template_xmlid, self.name
                 )
 
-        # No email on the recipient, OR send_mail() above failed for any
-        # reason — always leave a visible trace in the chatter either way.
         subject = template._render_field('subject', self.ids)[self.id]
         body = template._render_field('body_html', self.ids)[self.id]
         self.message_post(
