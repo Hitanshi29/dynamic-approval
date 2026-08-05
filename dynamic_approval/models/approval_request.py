@@ -428,30 +428,6 @@ class ApprovalRequest(models.Model):
         if record.exists():
             record.message_post(body=body)
 
-   
-    # def action_submit(self):
-    #     for rec in self:
-    #         if not rec.approver_id:
-    #             raise UserError(_('Please select an Approver before submitting.'))
-    #         rec._check_dynamic_required_fields()
-
-    #         already_approved = rec.line_ids.filtered(lambda l: l.state == 'approved')
-    #         if already_approved:
-    #             pending = rec.line_ids.filtered(lambda l: l.state != 'approved').sorted('sequence')
-    #             if pending:
-    #                 pending[0].state = 'to_approve'
-    #                 (pending - pending[0]).write({'state': 'waiting'})
-    #                 rec.approver_id = pending[0].user_id.id
-    #         else:
-    #             rec._build_approval_lines()
-
-    #         rec.state = 'submitted'
-    #         rec.message_post(body=_('Approval created'))
-    #         rec._set_dynamic_flag('submitted')
-    #         rec._send_status_mail('mail_template_approval_step_assigned')
-    #         rec._post_message_on_source_record(
-    #             _('Approval requested — "%s" (waiting on %s).') % (rec.type_id.name, rec.approver_id.name)
-    #         )
     def action_submit(self):
         for rec in self:
             rec._check_dynamic_required_fields()
@@ -506,7 +482,8 @@ class ApprovalRequest(models.Model):
                 if next_line:
                     next_line.state = 'to_approve'
                     rec.approver_id = next_line.user_id.id
-                    rec._send_status_mail('mail_template_approval_step_assigned')
+                    rec._send_status_mail('mail_template_approval_step_assigned')                              # notify the NEXT approver
+                    rec._send_status_mail('mail_template_approval_approved', recipient_user=rec.request_by)     # NEW: notify the requester of progress
                     rec._post_message_on_source_record(
                         _('%s -> %s(Approver)') % (active_line.user_id.name, next_line.user_id.name)
                     )
