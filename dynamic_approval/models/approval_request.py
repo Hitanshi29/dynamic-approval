@@ -98,6 +98,12 @@ class ApprovalRequest(models.Model):
 
     record_amount = fields.Float(string='Record Amount')
 
+    amount_evaluable = fields.Boolean(
+        string='Amount Rule Evaluable', default=True,
+        help='False when the source document has no amount-like field at all '
+            '(e.g. a Stock Picking) — Min Amount tiers cannot be evaluated, '
+            'so only the lowest configured tier is required.')
+
     line_ids = fields.One2many(
         'approval.request.line', 'request_id', string='Approval Steps')
 
@@ -213,7 +219,9 @@ class ApprovalRequest(models.Model):
         default_approver = approver_line.user_id.id if approver_line else False
 
         default_description = approval_type._render_description(record)
-        record_amount = getattr(record, 'amount_total', 0.0) or 0.0
+        # record_amount = getattr(record, 'amount_total', 0.0) or 0.0
+        has_amount_field = 'amount_total' in record._fields
+        record_amount = (record.amount_total or 0.0) if has_amount_field else 0.0
 
         quick_view = self.env.ref('dynamic_approval.view_approval_request_quick_form')
         return {
@@ -232,6 +240,7 @@ class ApprovalRequest(models.Model):
                 'default_approver_id': default_approver,
                 'default_description': default_description,
                 'default_record_amount': record_amount,
+                'default_amount_evaluable': has_amount_field,
             },
         }
 
@@ -307,19 +316,40 @@ class ApprovalRequest(models.Model):
             raise UserError(_('Please fill in the required field(s): %s') % ', '.join(missing))
 
 
+    # def _get_applicable_approver_tiers(self):
+    #     self.ensure_one()
+    #     type_lines = self.type_id.approver_ids.filtered(lambda l: l.user_id)
+    #     if not type_lines:
+    #         return type_lines
+    #     amount = self.record_amount or self.amount or 0.0
+    #     matching = type_lines.filtered(
+    #         lambda l: amount >= (l.minimum_amount or 0.0)
+    #     ).sorted(key=lambda l: l.minimum_amount or 0.0)
+    #     if matching:
+    #         return matching
+    
+    #     return type_lines.sorted(key=lambda l: l.minimum_amount or 0.0)[:1]
+
     def _get_applicable_approver_tiers(self):
         self.ensure_one()
         type_lines = self.type_id.approver_ids.filtered(lambda l: l.user_id)
         if not type_lines:
             return type_lines
+
+        sorted_lines = type_lines.sorted(key=lambda l: l.minimum_amount or 0.0)
+
+        if not self.amount_evaluable:
+            # No amount-like field on the source document at all (e.g. a
+            # Stock Picking) — the Min Amount rule can't be evaluated, so
+            # only the base/lowest tier applies; higher amount-gated tiers
+            # are skipped.
+            return sorted_lines[:1]
+
         amount = self.record_amount or self.amount or 0.0
-        matching = type_lines.filtered(
-            lambda l: amount >= (l.minimum_amount or 0.0)
-        ).sorted(key=lambda l: l.minimum_amount or 0.0)
-        if matching:
-            return matching
-    
-        return type_lines.sorted(key=lambda l: l.minimum_amount or 0.0)[:1]
+        # Cumulative: every tier whose minimum the amount meets or exceeds is
+        # required. If the amount is below every tier's minimum, nothing is
+        # required at all.
+        return sorted_lines.filtered(lambda l: amount >= (l.minimum_amount or 0.0))
 
     def _build_approval_lines(self):
         self.ensure_one()
@@ -399,10 +429,31 @@ class ApprovalRequest(models.Model):
             record.message_post(body=body)
 
    
+    # def action_submit(self):
+    #     for rec in self:
+    #         if not rec.approver_id:
+    #             raise UserError(_('Please select an Approver before submitting.'))
+    #         rec._check_dynamic_required_fields()
+
+    #         already_approved = rec.line_ids.filtered(lambda l: l.state == 'approved')
+    #         if already_approved:
+    #             pending = rec.line_ids.filtered(lambda l: l.state != 'approved').sorted('sequence')
+    #             if pending:
+    #                 pending[0].state = 'to_approve'
+    #                 (pending - pending[0]).write({'state': 'waiting'})
+    #                 rec.approver_id = pending[0].user_id.id
+    #         else:
+    #             rec._build_approval_lines()
+
+    #         rec.state = 'submitted'
+    #         rec.message_post(body=_('Approval created'))
+    #         rec._set_dynamic_flag('submitted')
+    #         rec._send_status_mail('mail_template_approval_step_assigned')
+    #         rec._post_message_on_source_record(
+    #             _('Approval requested — "%s" (waiting on %s).') % (rec.type_id.name, rec.approver_id.name)
+    #         )
     def action_submit(self):
         for rec in self:
-            if not rec.approver_id:
-                raise UserError(_('Please select an Approver before submitting.'))
             rec._check_dynamic_required_fields()
 
             already_approved = rec.line_ids.filtered(lambda l: l.state == 'approved')
@@ -414,6 +465,20 @@ class ApprovalRequest(models.Model):
                     rec.approver_id = pending[0].user_id.id
             else:
                 rec._build_approval_lines()
+
+            # No configured tier's Min Amount was met — nothing to approve.
+            if not rec.line_ids and rec.type_id.approver_ids:
+                rec.state = 'approved'
+                rec._run_type_action('approved_action')
+                rec._set_dynamic_flag('approved')
+                rec.message_post(body=_('No approval required — amount is below every configured tier.'))
+                rec._post_message_on_source_record(
+                    _('No approval required for "%s" — amount is below every configured tier.') % rec.type_id.name
+                )
+                continue
+
+            if not rec.approver_id:
+                raise UserError(_('Please select an Approver before submitting.'))
 
             rec.state = 'submitted'
             rec.message_post(body=_('Approval created'))

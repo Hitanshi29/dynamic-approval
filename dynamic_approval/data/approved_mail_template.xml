@@ -4,12 +4,45 @@
         <record id="mail_template_approval_approved" model="mail.template">
             <field name="name">Approval: Fully Approved</field>
             <field name="model_id" ref="model_approval_request"/>
-            <field name="subject">Approved: {{ object.name }}</field>
+            <field name="subject">{{ 'Approved' if object.state == 'approved' else 'Approval Update' }}: {{ object.name }}</field>
             <field name="email_to">{{ object.request_by.email }}</field>
             <field name="body_html" type="html">
-                <p>
-                    Your request <strong t-out="object.title or object.name"/> has been fully approved.
-                </p>
+                <div>
+                    <p>Hi <t t-out="object.request_by.name"/>,</p>
+
+                    <p t-if="object.state == 'approved'">
+                        Your request <strong t-out="object.title or object.name"/> has been
+                        <strong>fully approved</strong>.
+                    </p>
+                    <p t-else="1">
+                        There's an update on your request <strong t-out="object.title or object.name"/>.
+                    </p>
+
+                    <table style="border-collapse: collapse; width: 100%; margin-top: 8px;">
+                        <tr style="background:#f2f2f2;">
+                            <th style="text-align:left; padding:4px 8px; border:1px solid #ddd;">Step</th>
+                            <th style="text-align:left; padding:4px 8px; border:1px solid #ddd;">Approver</th>
+                            <th style="text-align:left; padding:4px 8px; border:1px solid #ddd;">Status</th>
+                        </tr>
+                        <t t-foreach="object.line_ids.sorted('sequence')" t-as="line">
+                            <tr>
+                                <td style="padding:4px 8px; border:1px solid #ddd;" t-out="line.title"/>
+                                <td style="padding:4px 8px; border:1px solid #ddd;" t-out="line.user_id.name"/>
+                                <td style="padding:4px 8px; border:1px solid #ddd;">
+                                    <span t-if="line.state == 'approved'" style="color:#2e7d32;">Approved</span>
+                                    <span t-elif="line.state == 'to_approve'" style="color:#b8860b;">Waiting for Approval</span>
+                                    <span t-elif="line.state == 'cancel'" style="color:#c62828;">Refused</span>
+                                    <span t-else="1">Pending</span>
+                                </td>
+                            </tr>
+                        </t>
+                    </table>
+
+                    <p style="margin-top:12px;">
+                        Thank you,<br/>
+                        <strong>YourCompany</strong>
+                    </p>
+                </div>
             </field>
         </record>
     </data>

@@ -31,14 +31,24 @@ class Base(models.AbstractModel):
         if not approval_type.exists():
             raise UserError(_("Approval configuration not found."))
 
-        record_amount = getattr(self, "amount_total", 0.0) or 0.0
+        has_amount_field = 'amount_total' in self._fields
+        record_amount = (self.amount_total or 0.0) if has_amount_field else 0.0
 
-        applicable_approvers = approval_type.approver_ids.filtered(
-            lambda l: record_amount >= l.minimum_amount
-        )
+        if has_amount_field:
+            # A real amount exists on this model — evaluate Min Amount tiers.
+            applicable_approvers = approval_type.approver_ids.filtered(
+                lambda l: record_amount >= l.minimum_amount
+            )
+        else:
+            # No amount-like field on this model at all (Employee, Stock
+            # Picking, ...) — the Min Amount rule can't be evaluated, so we
+            # must NOT treat that as "amount is 0" and auto-skip. Approval
+            # is always required in this case.
+            applicable_approvers = approval_type.approver_ids
 
-        # Nobody needs to approve
-        if not applicable_approvers:
+        # Nobody needs to approve — only possible when the amount was
+        # actually evaluated and came in below every tier.
+        if has_amount_field and not applicable_approvers:
 
             if approval_type.approved_action:
                 safe_eval(
